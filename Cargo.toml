@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Tiny replacement for electron-builder"
 authors = ["Lauren N. Liberda <lauren@selfisekai.rocks>"]
-repository = "https://gitlab.com/selfisekai/electron_tasje"
+repository = "https://codeberg.org/selfisekai/electron_tasje"
 license = "Apache-2.0"
 autobins = false
 

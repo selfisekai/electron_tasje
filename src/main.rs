@@ -31,9 +31,9 @@ enum Args {
 const STANDARD_FILTERS: [&str; 16] = [
     "!**/node_modules/.bin",
     "!**/*.{md,rst,markdown,txt}",
-    "!**/{test,tests,__tests__,powered-test,example,examples,readme,README,Readme,changelog,CHANGELOG,Changelog}",
-    "!**/test.*",
-    "!**/*.test.*",
+    "!**/{test,tests,__tests__,powered-test,spec,example,examples,readme,README,Readme,changelog,CHANGELOG,Changelog,ChangeLog}",
+    "!**/{spec,test}.*",
+    "!**/*.{spec,test}.*",
     "!**/._*",
     "!**/{.editorconfig,.DS_Store,.git,.svn,.hg,CVS,RCS,.gitattributes,.nvmrc,.nycrc,Makefile}",
     "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.vscode,.nyc_output,.docker-compose.yml}",
@@ -41,9 +41,9 @@ const STANDARD_FILTERS: [&str; 16] = [
     "!**/{package-lock.json,yarn.lock}",
     "!**/.{git,eslint,tslint,prettier,docker,npm,yarn}ignore",
     "!**/.{prettier,eslint,jshint,jsdoc}rc",
-    "!**/{.prettierrc,webpack.config,.jshintrc,jsdoc,.eslintrc}{,.json,.js,.yml,yaml}",
+    "!**/{.prettierrc,webpack.config,.jshintrc,jsdoc,.eslintrc,tsconfig}{,.json,.js,.yml,yaml}",
     "!**/{yarn,npm}-{debug,error}{,.log,.json}",
-    "!**/.{yarn,npm}-metadata,integrity",
+    "!**/.{yarn,npm}-{metadata,integrity}",
     "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj,c,h,cc,cpp,hpp,lzz,gyp,ts}",
 ];
 

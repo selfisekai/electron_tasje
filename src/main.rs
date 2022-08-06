@@ -102,8 +102,9 @@ fn main() {
                     .output
                     .unwrap_or_else(|| "tasje_out".to_string())
             }));
-            fs::create_dir_all(&output_dir).expect("create output_dir");
-            let unpacked_dir = output_dir.join("app.asar.unpacked");
+            let resources_dir = output_dir.join("resources");
+            fs::create_dir_all(&resources_dir).expect("create resources_dir");
+            let unpacked_dir = resources_dir.join("app.asar.unpacked");
 
             // write files into the asar
             let mut asar = AsarWriter::new();
@@ -115,7 +116,7 @@ fn main() {
                 )
                 .unwrap();
             }
-            asar.finalize(File::create(output_dir.join("app.asar")).unwrap())
+            asar.finalize(File::create(resources_dir.join("app.asar")).unwrap())
                 .unwrap();
 
             // copy unpacked asar resources
@@ -128,10 +129,10 @@ fn main() {
 
             // copy extra resources
             for (copy_source, copy_target) in &extra_copy_list {
-                let target = output_dir.join(copy_target);
+                let target = resources_dir.join(copy_target);
                 fs::create_dir_all(target.parent().unwrap())
                     .expect("creating extra resource dir structure");
-                fs::copy(copy_source, output_dir.join(copy_target))
+                fs::copy(copy_source, resources_dir.join(copy_target))
                     .expect("copying extra resource file");
             }
         }

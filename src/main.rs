@@ -59,7 +59,14 @@ fn main() {
         eprintln!("extra_copy_list: {:#?}", extra_copy_list);
     }
 
-    let output_dir = current_dir.join(args.output.unwrap_or_else(|| "tasje_out".to_string()));
+    let output_dir = current_dir.join(args.output.unwrap_or_else(|| {
+        ebuilder_conf
+            .directories
+            .clone()
+            .unwrap_or_default()
+            .output
+            .unwrap_or_else(|| "tasje_out".to_string())
+    }));
     fs::create_dir_all(&output_dir).expect("create output_dir");
 
     let mut asar = AsarWriter::new();

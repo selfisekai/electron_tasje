@@ -82,9 +82,15 @@ impl From<CopyDef> for FileSet {
     }
 }
 
+#[derive(Debug, Clone, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct EBDirectories {
+    pub output: Option<String>,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-/// might be a part of package.json or a separate yaml/toml/json file
+/// might be a part of package.json or a separate yaml/toml/json/js file
 /// https://www.electron.build/configuration/configuration
 pub struct EBuilderConfig {
     pub product_name: Option<String>,
@@ -93,4 +99,6 @@ pub struct EBuilderConfig {
     pub files: Option<AnyCopyDefs>,
     pub asar_unpack: Option<StringOrMultiple>,
     pub extra_resources: Option<AnyCopyDefs>,
+
+    pub directories: Option<EBDirectories>,
 }

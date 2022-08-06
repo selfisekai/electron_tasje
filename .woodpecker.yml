@@ -1,0 +1,6 @@
+pipeline:
+  build:
+    image: alpine:edge
+    commands:
+      - apk add cargo build-base
+      - RUSTC_BOOTSTRAP=1 cargo build

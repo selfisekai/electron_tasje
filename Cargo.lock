@@ -334,6 +334,7 @@ version = "0.1.0"
 dependencies = [
  "asar",
  "clap",
+ "globset",
  "globwalk",
  "serde",
  "serde_json",

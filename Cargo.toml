@@ -18,6 +18,7 @@ crate-type = ["bin"]
 [dependencies]
 asar = "0.1.0"
 clap = { version = "3.2.16", features = ["derive"] }
+globset = "0.4.9"
 globwalk = "0.8.1"
 serde = { version = "1.0.140", features = ["derive"] }
 serde_json = "1.0.82"

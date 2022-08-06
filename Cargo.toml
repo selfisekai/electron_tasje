@@ -6,7 +6,12 @@ description = "Tiny replacement for electron-builder"
 authors = ["Lauren N. Liberda <lauren@selfisekai.rocks>"]
 repository = "https://gitlab.com/selfisekai/electron_tasje"
 license = "Apache-2.0"
+autobins = false
 
+[lib]
+name = "tasje"
+path = "src/main.rs"
+crate-type = ["bin"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

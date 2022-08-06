@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use globwalk::GlobWalkerBuilder;
+use globwalk::{FileType, GlobWalkerBuilder};
 
 use crate::types::FileSet;
 
@@ -12,6 +12,29 @@ pub fn get_globs_and_file_sets(files: Vec<FileSet>) -> (Vec<String>, Vec<FileSet
         .iter()
         .filter(|set| set.to.is_none())
         .map(|set| set.from.clone())
+        .chain(
+            [
+                "node_modules/**/*",
+                "!**/node_modules/.bin",
+                "!**/*.{md,rst,markdown,txt}",
+                "!**/{test,tests,__tests__,powered-test,example,examples,readme,README,Readme,changelog,CHANGELOG,Changelog}",
+                "!**/test.*",
+                "!**/*.test.*",
+                "!**/._*",
+                "!**/{.editorconfig,.DS_Store,.git,.svn,.hg,CVS,RCS,.gitattributes,.nvmrc,.nycrc,Makefile}",
+                "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.vscode,.nyc_output,.docker-compose.yml}",
+                "!**/{.github,.gitlab,.gitlab-ci.yml,appveyor.yml,.travis.yml,circle.yml,.woodpecker.yml}",
+                "!**/{package-lock.json,yarn.lock}",
+                "!**/.{git,eslint,tslint,prettier,docker,npm,yarn}ignore",
+                "!**/.{prettier,eslint,jshint,jsdoc}rc",
+                "!**/{.prettierrc,webpack,.jshintrc,jsdoc,.eslintrc}{,.json,.js}",
+                "!**/{yarn,npm}-{debug,error}{,.log,.json}",
+                "!**/.{yarn,npm}-metadata,integrity",
+                "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj,c,h,cc,cpp,hpp,lzz,gyp,ts}",
+            ]
+            .into_iter()
+            .map(str::to_string),
+        )
         .collect();
 
     let file_sets = files
@@ -47,6 +70,7 @@ pub fn gen_copy_list<P: AsRef<Path>, S: AsRef<str>>(
 
     for dir_entry in GlobWalkerBuilder::from_patterns(&base_dir, &global_globs)
         .follow_links(true)
+        .file_type(FileType::FILE)
         .build()
         .unwrap()
         .filter_map(Result::ok)
@@ -64,6 +88,7 @@ pub fn gen_copy_list<P: AsRef<Path>, S: AsRef<str>>(
         for dir_entry in
             GlobWalkerBuilder::from_patterns(&set_base_dir, file_set.filter.as_ref().unwrap())
                 .follow_links(true)
+                .file_type(FileType::FILE)
                 .build()
                 .unwrap()
                 .filter_map(Result::ok)

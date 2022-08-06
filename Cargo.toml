@@ -1,0 +1,19 @@
+[package]
+name = "electron_tasje"
+version = "0.1.0"
+edition = "2021"
+description = "Tiny replacement for electron-builder"
+authors = ["Lauren N. Liberda <lauren@selfisekai.rocks>"]
+repository = "https://gitlab.com/selfisekai/electron_tasje"
+license = "Apache-2.0"
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+asar = "0.1.0"
+clap = { version = "3.2.16", features = ["derive"] }
+globwalk = "0.8.1"
+serde = { version = "1.0.140", features = ["derive"] }
+serde_json = "1.0.82"
+smart-default = "0.6.0"

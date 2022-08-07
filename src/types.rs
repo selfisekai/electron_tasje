@@ -27,6 +27,18 @@ impl From<&StringOrMultiple> for Vec<String> {
     }
 }
 
+impl From<StringOrMultiple> for Vec<String> {
+    fn from(som: StringOrMultiple) -> Self {
+        Vec::<String>::from(&som)
+    }
+}
+
+impl Default for StringOrMultiple {
+    fn default() -> Self {
+        StringOrMultiple::Multiple(vec![])
+    }
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
 pub enum AnyCopyDefs {
@@ -43,12 +55,30 @@ impl From<&AnyCopyDefs> for Vec<CopyDef> {
     }
 }
 
+impl From<AnyCopyDefs> for Vec<CopyDef> {
+    fn from(acd: AnyCopyDefs) -> Self {
+        Vec::<CopyDef>::from(&acd)
+    }
+}
+
 impl From<&AnyCopyDefs> for Vec<FileSet> {
     fn from(acd: &AnyCopyDefs) -> Self {
         Vec::<CopyDef>::from(acd)
             .into_iter()
             .map(|cd| cd.into())
             .collect()
+    }
+}
+
+impl From<AnyCopyDefs> for Vec<FileSet> {
+    fn from(acd: AnyCopyDefs) -> Self {
+        Vec::<FileSet>::from(&acd)
+    }
+}
+
+impl Default for AnyCopyDefs {
+    fn default() -> Self {
+        AnyCopyDefs::Multiple(vec![])
     }
 }
 
@@ -59,7 +89,7 @@ pub struct FileSet {
     #[serde(default)]
     pub to: Option<String>,
     #[serde(default)]
-    pub filter: Option<Vec<String>>,
+    pub filter: Option<StringOrMultiple>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

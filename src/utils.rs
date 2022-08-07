@@ -6,8 +6,12 @@ use std::{
 
 use globset::{Glob, GlobSetBuilder};
 use globwalk::{FileType, GlobWalkerBuilder};
+use path_absolutize::Absolutize;
 
-use crate::{types::FileSet, STANDARD_FILTERS};
+use crate::{
+    types::{FileSet, StringOrMultiple},
+    STANDARD_FILTERS,
+};
 
 pub fn get_globs_and_file_sets(files: Vec<FileSet>) -> (Vec<String>, Vec<FileSet>) {
     let global_globs = files
@@ -21,22 +25,25 @@ pub fn get_globs_and_file_sets(files: Vec<FileSet>) -> (Vec<String>, Vec<FileSet
         .filter(|set| set.to.is_some() || set.filter.is_some())
         .map(|mut set| {
             if set.filter.is_none() {
-                set.filter = Some(vec!["**/*".to_string()]);
+                set.filter = Some(StringOrMultiple::Multiple(vec!["**/*".to_string()]));
             } else if set
                 .filter
-                .is_some_and(|fl| fl.iter().all(|fi| fi.starts_with('!')))
+                .is_some_and(|fl| Vec::<String>::from(fl).iter().all(|fi| fi.starts_with('!')))
             {
-                set.filter = Some(
+                set.filter = Some(StringOrMultiple::Multiple(
                     vec!["**/*".to_string()]
                         .into_iter()
-                        .chain(set.filter.unwrap())
+                        .chain(Vec::<String>::from(&set.filter.unwrap()))
                         .collect(),
-                );
+                ));
             }
             set.filter = set.filter.map(|f| {
-                f.into_iter()
-                    .chain(STANDARD_FILTERS.into_iter().map(str::to_string))
-                    .collect()
+                StringOrMultiple::Multiple(
+                    Vec::<String>::from(&f)
+                        .into_iter()
+                        .chain(STANDARD_FILTERS.into_iter().map(str::to_string))
+                        .collect(),
+                )
             });
             set
         })
@@ -60,25 +67,44 @@ pub fn gen_copy_list<P: AsRef<Path>, S: AsRef<str>>(
     {
         let file_path = dir_entry.path();
         copy_list.insert((
-            file_path.to_path_buf(),
-            file_path.strip_prefix(&base_dir).unwrap().to_path_buf(),
+            file_path
+                .absolutize()
+                .expect("absolutizing copy source path")
+                .to_path_buf(),
+            file_path
+                .strip_prefix(&base_dir)
+                .unwrap()
+                .absolutize_from(&PathBuf::from("/"))
+                .expect("absolutizing copy target path")
+                .to_path_buf(),
         ));
     }
 
     for file_set in file_sets {
         let set_base_dir = base_dir.as_ref().join(&file_set.from);
         let target_dir = PathBuf::from(file_set.to.clone().unwrap_or_default());
-        for dir_entry in
-            GlobWalkerBuilder::from_patterns(&set_base_dir, file_set.filter.as_ref().unwrap())
-                .file_type(FileType::FILE)
-                .build()
-                .unwrap()
-                .filter_map(Result::ok)
+        for dir_entry in GlobWalkerBuilder::from_patterns(
+            &set_base_dir,
+            &Vec::<String>::from(file_set.filter.as_ref().unwrap()),
+        )
+        .file_type(FileType::FILE)
+        .build()
+        .unwrap()
+        .filter_map(Result::ok)
         {
             let file_path = dir_entry.path();
             copy_list.insert((
-                file_path.to_path_buf(),
-                target_dir.join(file_path.strip_prefix(&set_base_dir).unwrap()),
+                file_path
+                    .absolutize()
+                    .expect("absolutizing copy source path")
+                    .to_path_buf(),
+                target_dir.join(
+                    file_path
+                        .strip_prefix(&set_base_dir)
+                        .unwrap()
+                        .absolutize_from(&PathBuf::from("/"))
+                        .expect("absolutizing copy target path"),
+                ),
             ));
         }
     }

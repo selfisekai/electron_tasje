@@ -89,9 +89,9 @@ fn main() {
                 package.build.clone().expect("no ebuilder config found, either specify one with --config or add it to package.json")
             };
 
-            let files: Vec<FileSet> = ebuilder_conf.files.as_ref().unwrap().into();
-            let asar_unpack: Vec<String> = ebuilder_conf.asar_unpack.as_ref().unwrap().into();
-            let extra_res: Vec<FileSet> = ebuilder_conf.extra_resources.as_ref().unwrap().into();
+            let files: Vec<FileSet> = ebuilder_conf.files.unwrap_or_default().into();
+            let asar_unpack: Vec<String> = ebuilder_conf.asar_unpack.unwrap_or_default().into();
+            let extra_res: Vec<FileSet> = ebuilder_conf.extra_resources.unwrap_or_default().into();
 
             if verbose {
                 eprintln!("files: {:#?}", &files);
@@ -151,7 +151,7 @@ fn main() {
 
             // copy unpacked asar resources
             for (copy_source, copy_target) in &unpacked_copy_list {
-                let target = unpacked_dir.join(copy_target);
+                let target = unpacked_dir.join(copy_target.strip_prefix("/").unwrap());
                 fs::create_dir_all(target.parent().unwrap())
                     .expect("creating unpacked dir structure");
                 fs::copy(copy_source, target).expect("copying unpacked file");
@@ -159,11 +159,10 @@ fn main() {
 
             // copy extra resources
             for (copy_source, copy_target) in &extra_copy_list {
-                let target = resources_dir.join(copy_target);
+                let target = resources_dir.join(copy_target.strip_prefix("/").unwrap());
                 fs::create_dir_all(target.parent().unwrap())
                     .expect("creating extra resource dir structure");
-                fs::copy(copy_source, resources_dir.join(copy_target))
-                    .expect("copying extra resource file");
+                fs::copy(copy_source, target).expect("copying extra resource file");
             }
         }
     }

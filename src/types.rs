@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::Deserialize;
 use smart_default::SmartDefault;
 
@@ -120,6 +122,74 @@ pub struct EBDirectories {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct EBProtocol {
+    pub name: Option<String>,
+    pub schemes: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum EBProtocolOrPlural {
+    Single(EBProtocol),
+    Multiple(Vec<EBProtocol>),
+}
+
+impl From<&EBProtocolOrPlural> for Vec<EBProtocol> {
+    fn from(maybe_plural: &EBProtocolOrPlural) -> Self {
+        match maybe_plural {
+            EBProtocolOrPlural::Single(s) => vec![s.clone()],
+            EBProtocolOrPlural::Multiple(m) => m.clone(),
+        }
+    }
+}
+
+impl From<EBProtocolOrPlural> for Vec<EBProtocol> {
+    fn from(maybe_plural: EBProtocolOrPlural) -> Self {
+        Vec::<EBProtocol>::from(&maybe_plural)
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EBFileAssoc {
+    pub ext: StringOrMultiple,
+    pub mime_type: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum EBFileAssocOrPlural {
+    Single(EBFileAssoc),
+    Multiple(Vec<EBFileAssoc>),
+}
+
+impl From<&EBFileAssocOrPlural> for Vec<EBFileAssoc> {
+    fn from(maybe_plural: &EBFileAssocOrPlural) -> Self {
+        match maybe_plural {
+            EBFileAssocOrPlural::Single(s) => vec![s.clone()],
+            EBFileAssocOrPlural::Multiple(m) => m.clone(),
+        }
+    }
+}
+
+impl From<EBFileAssocOrPlural> for Vec<EBFileAssoc> {
+    fn from(maybe_plural: EBFileAssocOrPlural) -> Self {
+        Vec::<EBFileAssoc>::from(&maybe_plural)
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct LinuxOptions {
+    pub executable_name: Option<String>,
+    pub category: Option<String>,
+    pub desktop: Option<HashMap<String, String>>,
+    pub protocols: Option<EBProtocolOrPlural>,
+    pub file_associations: Option<EBFileAssocOrPlural>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 /// might be a part of package.json or a separate yaml/toml/json/js file
 /// https://www.electron.build/configuration/configuration
 pub struct EBuilderConfig {
@@ -131,4 +201,9 @@ pub struct EBuilderConfig {
     pub extra_resources: Option<AnyCopyDefs>,
 
     pub directories: Option<EBDirectories>,
+
+    pub linux: Option<LinuxOptions>,
+    pub executable_name: Option<String>,
+    pub protocols: Option<EBProtocolOrPlural>,
+    pub file_associations: Option<EBFileAssocOrPlural>,
 }

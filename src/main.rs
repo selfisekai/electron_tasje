@@ -1,9 +1,11 @@
 #![feature(is_some_with)]
 
+mod desktop;
 mod types;
 mod utils;
 
 use asar::AsarWriter;
+use desktop::gen_dotdesktop;
 use types::{EBuilderConfig, PackageJson};
 use utils::{gen_copy_list, get_globs_and_file_sets, refilter_copy_list};
 
@@ -89,9 +91,14 @@ fn main() {
                 package.build.clone().expect("no ebuilder config found, either specify one with --config or add it to package.json")
             };
 
-            let files: Vec<FileSet> = ebuilder_conf.files.unwrap_or_default().into();
-            let asar_unpack: Vec<String> = ebuilder_conf.asar_unpack.unwrap_or_default().into();
-            let extra_res: Vec<FileSet> = ebuilder_conf.extra_resources.unwrap_or_default().into();
+            let files: Vec<FileSet> = ebuilder_conf.files.clone().unwrap_or_default().into();
+            let asar_unpack: Vec<String> =
+                ebuilder_conf.asar_unpack.clone().unwrap_or_default().into();
+            let extra_res: Vec<FileSet> = ebuilder_conf
+                .extra_resources
+                .clone()
+                .unwrap_or_default()
+                .into();
 
             if verbose {
                 eprintln!("files: {:#?}", &files);
@@ -164,6 +171,12 @@ fn main() {
                     .expect("creating extra resource dir structure");
                 fs::copy(copy_source, target).expect("copying extra resource file");
             }
+
+            // create a .desktop file
+            let (dotdesktop_filename, dotdesktop_content) =
+                gen_dotdesktop(&ebuilder_conf, &package);
+            fs::write(output_dir.join(dotdesktop_filename), dotdesktop_content)
+                .expect("writing generated .desktop file");
         }
     }
 }

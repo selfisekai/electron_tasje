@@ -8,7 +8,7 @@ notable differences:
 - does not package the app into distributable formats like deb or installers, only builds app resources
 - does not download electron builds (because of the above)
 - does not download electron headers for dependency rebuilding (~~use system-provided headers~~ there's no rebuilding, DIY)
-- ~~outputs generated .desktop entries into a directory target~~
+- outputs generated .desktop entries into a directory target
 - there are no other targets than directory
 - the whole node_modules is packed, remove devDependencies yourself (`yarn --production`)
 - most probably won't even run on windows and macOS

@@ -1,6 +1,6 @@
 # electron_tasje
 
-**usable status: mostly**
+**usable status: mostly** (you might have to patch your configs or do other workarounds, but the core functionality works)
 
 a tiny replacement for [electron-builder](https://www.electron.build/) with the principles reversed: absolutely terrible for app developers, good for system package maintainers (signed, frustrated package maintainer).
 

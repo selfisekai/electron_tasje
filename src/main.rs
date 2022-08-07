@@ -4,11 +4,12 @@ mod types;
 mod utils;
 
 use asar::AsarWriter;
-use types::PackageJson;
+use types::{EBuilderConfig, PackageJson};
 use utils::{gen_copy_list, get_globs_and_file_sets, refilter_copy_list};
 
 use std::fs;
 use std::fs::File;
+use std::process::Command;
 
 use crate::types::FileSet;
 
@@ -25,6 +26,11 @@ enum Args {
         #[clap(short, long, value_parser)]
         /// directory to put build in, overrides directories.output
         output: Option<String>,
+
+        #[clap(short, long, value_parser)]
+        /// configuration file, if ebuilder configuration is outside package.json.
+        /// can be YAML, TOML, JSON or JS
+        config: Option<String>,
     },
 }
 
@@ -51,13 +57,37 @@ fn main() {
     let args = Args::parse();
 
     match args {
-        Args::Pack { verbose, output } => {
+        Args::Pack {
+            verbose,
+            output,
+            config,
+        } => {
             let package: PackageJson =
                 serde_json::from_str(&fs::read_to_string("package.json").unwrap()).unwrap();
 
-            let ebuilder_conf = &package.build.clone().unwrap_or_else(|| {
-                todo!("reading ebuilder config outside package.json");
-            });
+            let ebuilder_conf: EBuilderConfig = if let Some(config_path) = config {
+                let config_file = fs::read(&config_path).expect("reading ebuilder config file");
+                match config_path.split('.').last().unwrap() {
+                    "toml" => toml::from_slice(&config_file).unwrap(),
+                    "yaml" | "yml" => serde_yaml::from_slice(&config_file).unwrap(),
+                    "json" => serde_json::from_slice(&config_file).unwrap(),
+                    "js" => {
+                        let out = Command::new(
+                            std::env::var("NODE")
+                                .map(|s| s.to_string())
+                                .unwrap_or_else(|_| "node".to_string()),
+                        )
+                        .args(["-p", &format!("JSON.stringify(require('{}'))", config_path)])
+                        .output()
+                        .unwrap()
+                        .stdout;
+                        serde_json::from_slice(&out).unwrap()
+                    }
+                    x => panic!("unknown config format '{}'", x),
+                }
+            } else {
+                package.build.clone().expect("no ebuilder config found, either specify one with --config or add it to package.json")
+            };
 
             let files: Vec<FileSet> = ebuilder_conf.files.as_ref().unwrap().into();
             let asar_unpack: Vec<String> = ebuilder_conf.asar_unpack.as_ref().unwrap().into();

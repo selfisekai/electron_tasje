@@ -3,20 +3,21 @@ use crate::types::{EBFileAssoc, EBProtocol, EBuilderConfig, PackageJson};
 /// https://www.freedesktop.org/wiki/Specifications/desktop-entry-spec/
 pub fn gen_dotdesktop(ebuilder: &EBuilderConfig, package: &PackageJson) -> (String, String) {
     let eb_linux = ebuilder.linux.clone().unwrap_or_default();
-    let exec_name = eb_linux.executable_name.as_ref().unwrap_or_else(|| {
-        ebuilder
-            .executable_name
-            .as_ref()
-            .unwrap_or_else(|| &package.name)
-    });
-    let mut lines = vec!["[Desktop Entry]".to_string()];
-    lines.push(format!(
-        "Name={}",
-        ebuilder.product_name.as_ref().unwrap_or(&package.name),
-    ));
-    lines.push(format!("Exec=/usr/bin/{} %U", exec_name));
-    lines.push("Terminal=false".to_string());
-    lines.push(format!("Icon={}", exec_name));
+    let exec_name = eb_linux
+        .executable_name
+        .as_ref()
+        .or(ebuilder.executable_name.as_ref())
+        .unwrap_or(&package.name);
+    let mut lines = vec![
+        "[Desktop Entry]".to_string(),
+        format!(
+            "Name={}",
+            ebuilder.product_name.as_ref().unwrap_or(&package.name),
+        ),
+        format!("Exec=/usr/bin/{} %U", exec_name),
+        "Terminal=false".to_string(),
+        format!("Icon={}", exec_name),
+    ];
     if let Some(properties) = eb_linux.desktop {
         for (key, val) in properties {
             lines.push(format!("{}={}", key, val));
@@ -50,6 +51,7 @@ pub fn gen_dotdesktop(ebuilder: &EBuilderConfig, package: &PackageJson) -> (Stri
     if let Some(categories) = eb_linux.category {
         lines.push(format!("Categories={}", categories));
     }
+    // end with empty line
     lines.push("".to_string());
 
     (format!("{}.desktop", package.name), lines.join("\n"))

@@ -26,16 +26,15 @@ pub fn get_globs_and_file_sets(files: Vec<FileSet>) -> (Vec<String>, Vec<FileSet
         .map(|mut set| {
             if set.filter.is_none() {
                 set.filter = Some(StringOrMultiple::Multiple(vec!["**/*".to_string()]));
-            } else if set
-                .filter
-                .is_some_and(|fl| Vec::<String>::from(fl).iter().all(|fi| fi.starts_with('!')))
-            {
-                set.filter = Some(StringOrMultiple::Multiple(
-                    vec!["**/*".to_string()]
-                        .into_iter()
-                        .chain(Vec::<String>::from(&set.filter.unwrap()))
-                        .collect(),
-                ));
+            } else if let Some(fl) = set.filter.as_ref() {
+                if Vec::<String>::from(fl).iter().all(|fi| fi.starts_with('!')) {
+                    set.filter = Some(StringOrMultiple::Multiple(
+                        vec!["**/*".to_string()]
+                            .into_iter()
+                            .chain(Vec::<String>::from(set.filter.unwrap()))
+                            .collect(),
+                    ));
+                }
             }
             set.filter = set.filter.map(|f| {
                 StringOrMultiple::Multiple(

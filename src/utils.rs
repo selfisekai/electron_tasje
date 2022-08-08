@@ -60,6 +60,7 @@ pub fn gen_copy_list<P: AsRef<Path>, S: AsRef<str>>(
 
     for dir_entry in GlobWalkerBuilder::from_patterns(&base_dir, &global_globs)
         .file_type(FileType::FILE)
+        .follow_links(true)
         .build()
         .unwrap()
         .filter_map(Result::ok)
@@ -87,6 +88,7 @@ pub fn gen_copy_list<P: AsRef<Path>, S: AsRef<str>>(
             &Vec::<String>::from(file_set.filter.as_ref().unwrap()),
         )
         .file_type(FileType::FILE)
+        .follow_links(true)
         .build()
         .unwrap()
         .filter_map(Result::ok)

@@ -34,14 +34,13 @@ enum Args {
     },
 }
 
-const STANDARD_FILTERS: [&str; 16] = [
+const STANDARD_FILTERS: [&str; 15] = [
     "!**/node_modules/.bin",
-    "!**/*.{md,rst,markdown,txt}",
-    "!**/{test,tests,__tests__,powered-test,spec,example,examples,readme,README,Readme,changelog,CHANGELOG,Changelog,ChangeLog}",
-    "!**/{spec,test}.*",
+    "!**/*.{md,rst,markdown}",
+    "!**/{__tests__,powered-test,spec,example,examples,readme,README,Readme,changelog,CHANGELOG,Changelog,ChangeLog}",
     "!**/*.{spec,test}.*",
     "!**/._*",
-    "!**/{.editorconfig,.DS_Store,.git,.svn,.hg,CVS,RCS,.gitattributes,.nvmrc,.nycrc,Makefile}",
+    "!**/{.editorconfig,.DS_Store,.git,.svn,.hg,CVS,RCS,.gitattributes,.nvmrc,.nycrc,Makefile,CMakeLists.txt}",
     "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.vscode,.nyc_output,.docker-compose.yml}",
     "!**/{.github,.gitlab,.gitlab-ci.yml,appveyor.yml,.travis.yml,circle.yml,.woodpecker.yml}",
     "!**/{package-lock.json,yarn.lock}",
@@ -50,7 +49,7 @@ const STANDARD_FILTERS: [&str; 16] = [
     "!**/{.prettierrc,webpack.config,.jshintrc,jsdoc,.eslintrc,tsconfig}{,.json,.js,.yml,yaml}",
     "!**/{yarn,npm}-{debug,error}{,.log,.json}",
     "!**/.{yarn,npm}-{metadata,integrity}",
-    "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj,c,h,cc,cpp,hpp,lzz,gyp,ts}",
+    "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj,c,h,cc,cpp,hpp,lzz,gyp,d.ts}",
 ];
 
 fn main() {

@@ -2,5 +2,8 @@ pipeline:
   build:
     image: distroless.dev/alpine-base:latest
     commands:
+      - |
+        echo "https://alpine.sakamoto.pl/alpine/edge/main
+        https://alpine.sakamoto.pl/alpine/edge/community" > /etc/apk/repositories
       - apk add --no-cache cargo build-base
       - cargo build

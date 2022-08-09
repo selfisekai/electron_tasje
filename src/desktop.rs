@@ -16,6 +16,7 @@ pub fn gen_dotdesktop(ebuilder: &EBuilderConfig, package: &PackageJson) -> (Stri
         ),
         format!("Exec=/usr/bin/{} %U", exec_name),
         "Terminal=false".to_string(),
+        "Type=Application".to_string(),
         format!("Icon={}", exec_name),
     ];
     if let Some(properties) = eb_linux.desktop {

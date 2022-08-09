@@ -106,14 +106,13 @@ fn main() {
             let current_dir = std::env::current_dir().unwrap();
 
             let (mut asar_global_globs, asar_file_sets) = get_globs_and_file_sets(files.clone());
-            asar_global_globs = asar_global_globs
+            // order matters. add node_modules glob first to allow excluding specific globs in node_modules
+            // https://codeberg.org/selfisekai/electron_tasje/issues/14
+            asar_global_globs = ["/node_modules/**/*", "!/tasje_out"]
                 .into_iter()
-                .chain(
-                    ["/node_modules/**/*", "!/tasje_out"]
-                        .into_iter()
-                        .chain(STANDARD_FILTERS)
-                        .map(str::to_string),
-                )
+                .map(str::to_string)
+                .chain(asar_global_globs)
+                .chain(STANDARD_FILTERS.into_iter().map(str::to_string))
                 .collect();
             let (extra_global_globs, extra_file_sets) = get_globs_and_file_sets(extra_res);
 

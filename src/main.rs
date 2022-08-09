@@ -31,6 +31,18 @@ enum Args {
         /// configuration file, if ebuilder configuration is outside package.json.
         /// can be YAML, TOML, JSON or JS
         config: Option<String>,
+
+        #[clap(long, value_parser)]
+        /// additional globs to be interpreted as a part of "files" in ebuilder config
+        additional_files: Vec<String>,
+
+        #[clap(long, value_parser)]
+        /// additional globs to be interpreted as a part of "asarUnpack" in ebuilder config
+        additional_asar_unpack: Vec<String>,
+
+        #[clap(long, value_parser)]
+        /// additional globs to be interpreted as a part of "extraResources" in ebuilder config
+        additional_extra_resources: Vec<String>,
     },
 }
 
@@ -60,6 +72,9 @@ fn main() {
             verbose,
             output,
             config,
+            additional_files,
+            additional_asar_unpack,
+            additional_extra_resources,
         } => {
             let package: PackageJson =
                 serde_json::from_str(&fs::read_to_string("package.json").unwrap()).unwrap();
@@ -113,11 +128,22 @@ fn main() {
                 .map(str::to_string)
                 .chain(asar_global_globs)
                 .chain(STANDARD_FILTERS.into_iter().map(str::to_string))
+                .chain(additional_files)
                 .collect();
-            let (extra_global_globs, extra_file_sets) = get_globs_and_file_sets(extra_res);
+            let (mut extra_global_globs, extra_file_sets) = get_globs_and_file_sets(extra_res);
+            extra_global_globs = extra_global_globs
+                .into_iter()
+                .chain(additional_extra_resources)
+                .collect();
 
             let asar_copy_list = gen_copy_list(&current_dir, &asar_global_globs, &asar_file_sets);
-            let unpacked_copy_list = refilter_copy_list(&asar_copy_list, &asar_unpack);
+            let unpacked_copy_list = refilter_copy_list(
+                &asar_copy_list,
+                &asar_unpack
+                    .into_iter()
+                    .chain(additional_asar_unpack)
+                    .collect::<Vec<String>>(),
+            );
             let extra_copy_list =
                 gen_copy_list(&current_dir, &extra_global_globs, &extra_file_sets);
 

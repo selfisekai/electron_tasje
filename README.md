@@ -14,6 +14,11 @@ notable differences:
 - most probably won't even run on windows and macOS
 - not tested with cross-compiling (this might change)
 
+## mirrors
+
+- codeberg (main development platform): https://codeberg.org/selfisekai/electron_tasje/
+- github (mirror): https://github.com/selfisekai/electron_tasje/
+
 ## legal
 
 copyright 2022 Lauren N. Liberda, usage allowed under the terms of [Apache-2.0 license](LICENSE)

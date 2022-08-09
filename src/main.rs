@@ -4,11 +4,13 @@ mod utils;
 
 use asar::AsarWriter;
 use desktop::gen_dotdesktop;
+use path_absolutize::Absolutize;
 use types::{EBuilderConfig, PackageJson};
 use utils::{gen_copy_list, get_globs_and_file_sets, refilter_copy_list};
 
 use std::fs;
 use std::fs::File;
+use std::path::Path;
 use std::process::Command;
 
 use crate::types::FileSet;
@@ -76,6 +78,7 @@ fn main() {
             additional_asar_unpack,
             additional_extra_resources,
         } => {
+            let current_dir = std::env::current_dir().unwrap();
             let package: PackageJson =
                 serde_json::from_str(&fs::read_to_string("package.json").unwrap()).unwrap();
 
@@ -91,7 +94,20 @@ fn main() {
                                 .map(|s| s.to_string())
                                 .unwrap_or_else(|_| "node".to_string()),
                         )
-                        .args(["-p", &format!("JSON.stringify(require('{}'))", config_path)])
+                        .args([
+                            "-p",
+                            // using absolute path to make sure it's recognized as path by node.js
+                            // https://codeberg.org/selfisekai/electron_tasje/issues/7
+                            &format!(
+                                "JSON.stringify(require({}))",
+                                serde_json::to_string(
+                                    &Path::new(&config_path)
+                                        .absolutize_from(&current_dir)
+                                        .unwrap()
+                                )
+                                .unwrap()
+                            ),
+                        ])
                         .output()
                         .unwrap()
                         .stdout;
@@ -117,8 +133,6 @@ fn main() {
                 eprintln!("asar_unpack: {:#?}", &asar_unpack);
                 eprintln!("extra_resources: {:#?}", &extra_res);
             }
-
-            let current_dir = std::env::current_dir().unwrap();
 
             let (mut asar_global_globs, asar_file_sets) = get_globs_and_file_sets(files.clone());
             // order matters. add node_modules glob first to allow excluding specific globs in node_modules

@@ -17,7 +17,17 @@ pub fn get_globs_and_file_sets(files: Vec<FileSet>) -> (Vec<String>, Vec<FileSet
     let global_globs = files
         .iter()
         .filter(|set| set.to.is_none())
-        .map(|set| "/".to_owned() + &set.from.clone())
+        .map(|set| {
+            if set.from.starts_with("./") {
+                set.from[1..].to_string()
+            } else if set.from.starts_with("!./") {
+                "!/".to_owned() + &set.from[3..]
+            } else if set.from.starts_with('!') || set.from.starts_with('/') {
+                set.from.clone()
+            } else {
+                "/".to_owned() + &set.from
+            }
+        })
         .collect();
 
     let file_sets = files

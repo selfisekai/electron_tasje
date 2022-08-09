@@ -1,6 +1,6 @@
 pipeline:
   build:
-    image: alpine:edge
+    image: distroless.dev/alpine-base:latest
     commands:
-      - apk add cargo build-base
-      - RUSTC_BOOTSTRAP=1 cargo build
+      - apk add --no-cache cargo build-base
+      - cargo build

@@ -186,6 +186,7 @@ pub struct LinuxOptions {
     pub desktop: Option<HashMap<String, String>>,
     pub protocols: Option<EBProtocolOrPlural>,
     pub file_associations: Option<EBFileAssocOrPlural>,
+    pub icon: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

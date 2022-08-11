@@ -1,9 +1,14 @@
+#[macro_use]
+extern crate lazy_static;
+
 mod desktop;
+mod icons;
 mod types;
 mod utils;
 
 use asar::AsarWriter;
 use desktop::gen_dotdesktop;
+use icons::gen_icons;
 use path_absolutize::Absolutize;
 use types::{EBuilderConfig, PackageJson};
 use utils::{gen_copy_list, get_globs_and_file_sets, refilter_copy_list};
@@ -178,6 +183,8 @@ fn main() {
             let resources_dir = output_dir.join("resources");
             fs::create_dir_all(&resources_dir).expect("create resources_dir");
             let unpacked_dir = resources_dir.join("app.asar.unpacked");
+            let icons_dir = output_dir.join("icons");
+            fs::create_dir_all(&icons_dir).expect("create icons_dir");
 
             // write files into the asar
             let mut asar = AsarWriter::new();
@@ -213,6 +220,9 @@ fn main() {
                 gen_dotdesktop(&ebuilder_conf, &package);
             fs::write(output_dir.join(dotdesktop_filename), dotdesktop_content)
                 .expect("writing generated .desktop file");
+
+            // copy/generate icons
+            gen_icons(&ebuilder_conf, current_dir, icons_dir);
         }
     }
 }

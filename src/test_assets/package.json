@@ -1,0 +1,40 @@
+{
+    "name": "electron_tasje",
+    "description": "Packs Electron apps",
+    "version": "2.1.3.7-jp2",
+    "build": {
+        "productName": "Tasje",
+        "linux": {
+            "executableName": "tasje",
+            "category": "Tools",
+            "desktop": {
+                "CustomField": "custom_value"
+            },
+            "protocols": [
+                {
+                    "name": "tasje",
+                    "schemes": [
+                        "tasje"
+                    ]
+                },
+                {
+                    "name": "ebuilder",
+                    "schemes": [
+                        "ebuilder",
+                        "electron-builder"
+                    ]
+                }
+            ]
+        },
+        "protocols": {
+            "name": "ignored",
+            "schemes": [
+                "invalid"
+            ]
+        },
+        "fileAssociations": {
+            "ext": "tas",
+            "mimeType": "application/x-tas"
+        }
+    }
+}

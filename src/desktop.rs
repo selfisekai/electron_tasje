@@ -57,3 +57,30 @@ pub fn gen_dotdesktop(ebuilder: &EBuilderConfig, package: &PackageJson) -> (Stri
 
     (format!("{}.desktop", package.name), lines.join("\n"))
 }
+
+#[test]
+fn test_gen_dotdesktop() {
+    use crate::types::PackageJson;
+
+    let package: PackageJson =
+        serde_json::from_str(include_str!("test_assets/package.json")).unwrap();
+
+    let (dotdesktop_name, dotdesktop_content) =
+        gen_dotdesktop(package.build.as_ref().unwrap(), &package);
+
+    assert_eq!(dotdesktop_name, "electron_tasje.desktop");
+    assert_eq!(
+        dotdesktop_content,
+        r#"[Desktop Entry]
+Name=Tasje
+Exec=/usr/bin/tasje %U
+Terminal=false
+Type=Application
+Icon=tasje
+CustomField=custom_value
+Comment=Packs Electron apps
+MimeType=x-scheme-handler/tasje;x-scheme-handler/ebuilder;x-scheme-handler/electron-builder;application/x-tas;
+Categories=Tools
+"#
+    );
+}

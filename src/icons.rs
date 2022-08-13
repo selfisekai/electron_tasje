@@ -42,6 +42,31 @@ pub fn gen_icons<P: AsRef<Path>>(ebuilder: &EBuilderConfig, current_dir: P, icon
                 .expect("optimizing/writing icon file");
             }
         }
+    } else if let Some(ico_file_path) = ebuilder
+        .win
+        .clone()
+        .map(|ebl| ebl.icon)
+        .flatten()
+        .map(|p| current_dir.as_ref().join(p))
+        .as_ref()
+    {
+        let ico_file = fs::File::open(ico_file_path).expect("opening win .ico file");
+        let ico_contents = ico::IconDir::read(ico_file).expect("parsing win .ico file");
+        for ico_entry in ico_contents.entries() {
+            let width = ico_entry.width();
+            let height = ico_entry.height();
+            icon_sizes.insert((width.try_into().unwrap(), height.try_into().unwrap()));
+
+            let filename = format!("{width}x{height}.png");
+
+            let png_file = fs::File::create(icons_dir.as_ref().join(&filename))
+                .expect("creating .png icon file (from .ico)");
+            ico_entry
+                .decode()
+                .expect("decoding .ico entry")
+                .write_png(png_file)
+                .expect("writing .png icon file from .ico");
+        }
     }
 
     // write a file with a list of sizes
@@ -76,4 +101,26 @@ fn test_gen_icons() {
     for size in [10, 128, 256] {
         assert!(icons_dir.join(format!("{size}x{size}.png")).exists());
     }
+}
+
+#[test]
+fn test_gen_icons_win() {
+    use crate::types::PackageJson;
+    use std::env::current_dir;
+
+    let package: PackageJson =
+        serde_json::from_str(include_str!("test_assets/package-win.json")).unwrap();
+
+    let current_dir = current_dir().unwrap();
+    let icons_dir = current_dir.join(".test-workspace/icons_win");
+    fs::create_dir_all(&icons_dir).unwrap();
+
+    gen_icons(
+        package.build.as_ref().unwrap(),
+        current_dir,
+        icons_dir.clone(),
+    );
+
+    // single size stored in test .ico
+    assert!(icons_dir.join(format!("32x32.png")).exists());
 }

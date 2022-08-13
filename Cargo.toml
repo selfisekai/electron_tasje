@@ -20,6 +20,7 @@ asar = "0.1.0"
 clap = { version = "3.2.16", features = ["derive"] }
 globset = "0.4.9"
 globwalk = "0.8.1"
+ico = "0.1.0"
 lazy_static = "1.4.0"
 oxipng = { version = "5.0.1", default-features = false }
 path-absolutize = "3.0.13"

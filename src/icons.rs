@@ -58,14 +58,24 @@ pub fn gen_icons<P: AsRef<Path>>(ebuilder: &EBuilderConfig, current_dir: P, icon
             icon_sizes.insert((width.try_into().unwrap(), height.try_into().unwrap()));
 
             let filename = format!("{width}x{height}.png");
+            let out_path = icons_dir.as_ref().join(&filename);
 
-            let png_file = fs::File::create(icons_dir.as_ref().join(&filename))
-                .expect("creating .png icon file (from .ico)");
+            let png_file =
+                fs::File::create(&out_path).expect("creating .png icon file (from .ico)");
             ico_entry
                 .decode()
                 .expect("decoding .ico entry")
                 .write_png(png_file)
                 .expect("writing .png icon file from .ico");
+            oxipng::optimize(
+                &oxipng::InFile::Path(out_path),
+                &oxipng::OutFile::Path(None),
+                &oxipng::Options {
+                    fix_errors: true,
+                    ..Default::default()
+                },
+            )
+            .expect("optimizing/writing icon file");
         }
     }
 

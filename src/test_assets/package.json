@@ -7,6 +7,7 @@
         "linux": {
             "executableName": "tasje",
             "category": "Tools",
+            "icon": "src/test_assets/icons_linux",
             "desktop": {
                 "CustomField": "custom_value"
             },

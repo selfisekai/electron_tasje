@@ -47,8 +47,10 @@ pub fn gen_icons<P: AsRef<Path>>(ebuilder: &EBuilderConfig, current_dir: P, icon
         .clone()
         .map(|ebl| ebl.icon)
         .flatten()
+        .or(Some("build/icon.ico".to_string()))
         .map(|p| current_dir.as_ref().join(p))
         .as_ref()
+        .filter(|p| p.exists())
     {
         let ico_file = fs::File::open(ico_file_path).expect("opening win .ico file");
         let ico_contents = ico::IconDir::read(ico_file).expect("parsing win .ico file");

@@ -11,7 +11,7 @@ use desktop::gen_dotdesktop;
 use icons::gen_icons;
 use path_absolutize::Absolutize;
 use types::{EBuilderConfig, PackageJson};
-use utils::{gen_copy_list, get_globs_and_file_sets, refilter_copy_list};
+use utils::{fill_variable_template, gen_copy_list, get_globs_and_file_sets, refilter_copy_list};
 
 use std::fs;
 use std::fs::File;
@@ -148,11 +148,13 @@ fn main() {
                 .chain(asar_global_globs)
                 .chain(STANDARD_FILTERS.into_iter().map(str::to_string))
                 .chain(additional_files)
+                .map(fill_variable_template)
                 .collect();
             let (mut extra_global_globs, extra_file_sets) = get_globs_and_file_sets(extra_res);
             extra_global_globs = extra_global_globs
                 .into_iter()
                 .chain(additional_extra_resources)
+                .map(fill_variable_template)
                 .collect();
 
             let asar_copy_list = gen_copy_list(&current_dir, &asar_global_globs, &asar_file_sets);
@@ -161,6 +163,7 @@ fn main() {
                 &asar_unpack
                     .into_iter()
                     .chain(additional_asar_unpack)
+                    .map(fill_variable_template)
                     .collect::<Vec<String>>(),
             );
             let extra_copy_list =

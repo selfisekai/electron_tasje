@@ -1,7 +1,36 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
 
 use serde::Deserialize;
 use smart_default::SmartDefault;
+
+#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+/// possible value reference: https://nodejs.org/dist/latest-v16.x/docs/api/process.html#processarch
+pub enum NodeArch {
+    /// x86_64, amd64
+    X64,
+    /// i686, x86
+    IA32,
+    /// aarch64, arm64
+    Arm64,
+    /// arm 32-bit
+    Arm,
+}
+
+impl fmt::Display for NodeArch {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                NodeArch::X64 => "x64",
+                NodeArch::IA32 => "ia32",
+                NodeArch::Arm64 => "arm64",
+                NodeArch::Arm => "arm",
+            }
+        )
+    }
+}
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]

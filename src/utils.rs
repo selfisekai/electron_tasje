@@ -1,5 +1,6 @@
 use std::{
     collections::HashSet,
+    env,
     fmt::Debug,
     path::{Path, PathBuf},
 };
@@ -7,9 +8,10 @@ use std::{
 use globset::{Glob, GlobSetBuilder};
 use globwalk::{FileType, GlobWalkerBuilder};
 use path_absolutize::Absolutize;
+use regex::{Captures, Regex};
 
 use crate::{
-    types::{FileSet, StringOrMultiple},
+    types::{FileSet, NodeArch, StringOrMultiple},
     STANDARD_FILTERS,
 };
 
@@ -163,4 +165,40 @@ pub fn refilter_copy_list<S: AsRef<str> + Debug>(
     );
 
     return copy_list;
+}
+
+pub fn host_node_arch() -> NodeArch {
+    #[cfg(target_arch = "x86_64")]
+    return NodeArch::X64;
+
+    #[cfg(target_arch = "x86")]
+    return NodeArch::IA32;
+
+    #[cfg(target_arch = "aarch64")]
+    return NodeArch::Arm64;
+
+    #[cfg(target_arch = "arm")]
+    return NodeArch::Arm;
+}
+
+pub fn fill_variable_template<S: AsRef<str>>(template: S) -> String {
+    lazy_static! {
+        static ref TEMPLATE_REGEX: Regex = Regex::new(r#"\$\{([a-zA-Z_. ]+)\}"#).unwrap();
+    }
+    TEMPLATE_REGEX
+        .replace_all(template.as_ref(), |captures: &Captures| -> String {
+            let variable = captures.get(1).unwrap().as_str().trim();
+            match variable {
+                "arch" => host_node_arch().to_string(),
+                "platform" => "linux".to_string(),
+                v => {
+                    if let Some(envar) = v.strip_prefix("env.") {
+                        env::var(envar).expect("getting env variable contents")
+                    } else {
+                        todo!("unknown template variable: '{variable}'")
+                    }
+                }
+            }
+        })
+        .to_string()
 }

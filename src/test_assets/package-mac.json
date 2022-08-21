@@ -1,0 +1,10 @@
+{
+    "name": "electron_tasje",
+    "description": "Packs Electron apps",
+    "version": "2.1.3.7-jp2",
+    "build": {
+        "mac": {
+            "icon": "src/test_assets/icons_mac/icon.icns"
+        }
+    }
+}

@@ -42,6 +42,43 @@ pub fn gen_icons<P: AsRef<Path>>(ebuilder: &EBuilderConfig, current_dir: P, icon
                 .expect("optimizing/writing icon file");
             }
         }
+    } else if let Some(icns_file_path) = ebuilder
+        .mac
+        .clone()
+        .map(|ebl| ebl.icon)
+        .flatten()
+        .or(Some("build/icon.icns".to_string()))
+        .map(|p| current_dir.as_ref().join(p))
+        .as_ref()
+        .filter(|p| p.exists())
+    {
+        let icns_file = fs::File::open(icns_file_path).expect("opening mac .icns file");
+        let icns_contents = icns::IconFamily::read(icns_file).expect("parsing mac .icns file");
+        for available_icon in icns_contents.available_icons() {
+            let icns_entry = icns_contents.get_icon_with_type(available_icon).unwrap();
+
+            let width = icns_entry.width();
+            let height = icns_entry.height();
+            icon_sizes.insert((width.try_into().unwrap(), height.try_into().unwrap()));
+
+            let filename = format!("{width}x{height}.png");
+            let out_path = icons_dir.as_ref().join(&filename);
+
+            let png_file =
+                fs::File::create(&out_path).expect("creating .png icon file (from .icns)");
+            icns_entry
+                .write_png(png_file)
+                .expect("writing .png file from .icns");
+            oxipng::optimize(
+                &oxipng::InFile::Path(out_path),
+                &oxipng::OutFile::Path(None),
+                &oxipng::Options {
+                    fix_errors: true,
+                    ..Default::default()
+                },
+            )
+            .expect("optimizing/writing icon file");
+        }
     } else if let Some(ico_file_path) = ebuilder
         .win
         .clone()
@@ -111,6 +148,29 @@ fn test_gen_icons() {
     );
 
     for size in [10, 128, 256] {
+        assert!(icons_dir.join(format!("{size}x{size}.png")).exists());
+    }
+}
+
+#[test]
+fn test_gen_icons_mac() {
+    use crate::types::PackageJson;
+    use std::env::current_dir;
+
+    let package: PackageJson =
+        serde_json::from_str(include_str!("test_assets/package-mac.json")).unwrap();
+
+    let current_dir = current_dir().unwrap();
+    let icons_dir = current_dir.join(".test-workspace/icons_mac");
+    fs::create_dir_all(&icons_dir).unwrap();
+
+    gen_icons(
+        package.build.as_ref().unwrap(),
+        current_dir,
+        icons_dir.clone(),
+    );
+
+    for size in [128, 256, 512] {
         assert!(icons_dir.join(format!("{size}x{size}.png")).exists());
     }
 }

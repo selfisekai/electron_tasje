@@ -224,6 +224,12 @@ pub struct WindowsOptions {
     pub icon: Option<String>,
 }
 
+#[derive(Debug, Clone, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct MacOptions {
+    pub icon: Option<String>,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 /// might be a part of package.json or a separate yaml/toml/json/js file
@@ -240,6 +246,7 @@ pub struct EBuilderConfig {
 
     pub linux: Option<LinuxOptions>,
     pub win: Option<WindowsOptions>,
+    pub mac: Option<MacOptions>,
     pub executable_name: Option<String>,
     pub protocols: Option<EBProtocolOrPlural>,
     pub file_associations: Option<EBFileAssocOrPlural>,

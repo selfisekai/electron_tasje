@@ -39,7 +39,6 @@ pub struct PackageJson {
     pub product_name: Option<String>,
     pub description: Option<String>,
     pub version: String,
-    pub author: Option<String>,
     pub build: Option<EBuilderConfig>,
 }
 

@@ -111,12 +111,14 @@ pub fn gen_copy_list<P: AsRef<Path>, S: AsRef<str>>(
                     .absolutize()
                     .expect("absolutizing copy source path")
                     .to_path_buf(),
-                target_dir.join(file_set.to.as_deref().unwrap_or(".")).join(
+                target_dir.join(
                     file_path
                         .strip_prefix(&set_base_dir)
                         .unwrap()
                         .absolutize_from(&PathBuf::from("/"))
-                        .expect("absolutizing copy target path"),
+                        .expect("absolutizing copy target path")
+                        .strip_prefix("/")
+                        .expect("removing the path root"),
                 ),
             ));
         }

@@ -115,6 +115,7 @@ pub fn gen_copy_list<P: AsRef<Path>, S: AsRef<str>>(
                     file_path
                         .strip_prefix(&set_base_dir)
                         .unwrap()
+                        .join(file_set.to.as_deref().unwrap_or("."))
                         .absolutize_from(&PathBuf::from("/"))
                         .expect("absolutizing copy target path"),
                 ),

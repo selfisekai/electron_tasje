@@ -12,7 +12,11 @@ pub fn gen_dotdesktop(ebuilder: &EBuilderConfig, package: &PackageJson) -> (Stri
         "[Desktop Entry]".to_string(),
         format!(
             "Name={}",
-            ebuilder.product_name.as_ref().unwrap_or(&package.name),
+            ebuilder
+                .product_name
+                .as_ref()
+                .or_else(|| package.product_name.as_ref())
+                .unwrap_or(&package.name),
         ),
         format!("Exec=/usr/bin/{} %U", exec_name),
         "Terminal=false".to_string(),

@@ -36,6 +36,7 @@ impl fmt::Display for NodeArch {
 #[serde(rename_all = "camelCase")]
 pub struct PackageJson {
     pub name: String,
+    pub product_name: Option<String>,
     pub description: Option<String>,
     pub version: String,
     pub author: Option<String>,

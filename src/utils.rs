@@ -111,7 +111,7 @@ pub fn gen_copy_list<P: AsRef<Path>, S: AsRef<str>>(
                     .absolutize()
                     .expect("absolutizing copy source path")
                     .to_path_buf(),
-                target_dir.join(
+                target_dir.absolutize_virtually("/").unwrap().join(
                     file_path
                         .strip_prefix(&set_base_dir)
                         .unwrap()

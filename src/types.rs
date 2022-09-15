@@ -73,8 +73,8 @@ impl Default for StringOrMultiple {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
 pub enum AnyCopyDefs {
-    One(CopyDef),
     Multiple(Vec<CopyDef>),
+    One(CopyDef),
 }
 
 impl From<&AnyCopyDefs> for Vec<CopyDef> {
@@ -126,8 +126,8 @@ pub struct FileSet {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
 pub enum CopyDef {
-    Set(FileSet),
     Simple(String),
+    Set(FileSet),
 }
 
 impl From<CopyDef> for FileSet {

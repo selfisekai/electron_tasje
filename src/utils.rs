@@ -15,6 +15,10 @@ use crate::{
     STANDARD_FILTERS,
 };
 
+lazy_static! {
+    static ref ROOT: PathBuf = PathBuf::from("/");
+}
+
 pub fn get_globs_and_file_sets(files: Vec<FileSet>) -> (Vec<String>, Vec<FileSet>) {
     let global_globs = files
         .iter()
@@ -111,15 +115,11 @@ pub fn gen_copy_list<P: AsRef<Path>, S: AsRef<str>>(
                     .absolutize()
                     .expect("absolutizing copy source path")
                     .to_path_buf(),
-                target_dir.absolutize_virtually("/").unwrap().join(
-                    file_path
-                        .strip_prefix(&set_base_dir)
-                        .unwrap()
-                        .absolutize_from(&PathBuf::from("/"))
-                        .expect("absolutizing copy target path")
-                        .strip_prefix("/")
-                        .expect("removing the path root"),
-                ),
+                ROOT.join(&target_dir)
+                    .join(file_path.strip_prefix(&set_base_dir).unwrap())
+                    .absolutize_from(ROOT.as_path())
+                    .expect("absolutizing copy target path")
+                    .to_path_buf(),
             ));
         }
     }

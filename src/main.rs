@@ -6,6 +6,7 @@ mod icons;
 mod types;
 mod utils;
 
+use anyhow::Context;
 use asar::AsarWriter;
 use desktop::gen_dotdesktop;
 use icons::gen_icons;
@@ -15,7 +16,7 @@ use utils::{fill_variable_template, gen_copy_list, get_globs_and_file_sets, refi
 
 use std::fs;
 use std::fs::File;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::types::FileSet;
@@ -87,12 +88,29 @@ fn main() {
             let package: PackageJson =
                 serde_json::from_str(&fs::read_to_string("package.json").unwrap()).unwrap();
 
-            let ebuilder_conf: EBuilderConfig = if let Some(config_path) = config {
-                let config_file = fs::read(&config_path).expect("reading ebuilder config file");
-                match config_path.split('.').last().unwrap() {
-                    "toml" => toml::from_slice(&config_file).unwrap(),
-                    "yaml" | "yml" => serde_yaml::from_slice(&config_file).unwrap(),
-                    "json" => serde_json::from_slice(&config_file).unwrap(),
+            let ebuilder_conf: EBuilderConfig = if let Some(config_path_) = config {
+                let config_path = PathBuf::from(config_path_);
+                let config_file = fs::read(&config_path)
+                    .with_context(|| format!("on reading file: {:?}", config_path))
+                    .unwrap();
+                match config_path
+                    .file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .split('.')
+                    .last()
+                    .unwrap()
+                {
+                    "toml" => toml::from_slice(&config_file)
+                        .with_context(|| format!("parsing toml config file: {:?}", config_path))
+                        .unwrap(),
+                    "yaml" | "yml" => serde_yaml::from_slice(&config_file)
+                        .with_context(|| format!("parsing yaml config file: {:?}", config_path))
+                        .unwrap(),
+                    "json" => serde_json::from_slice(&config_file)
+                        .with_context(|| format!("parsing json config file: {:?}", config_path))
+                        .unwrap(),
                     "js" => {
                         let out = Command::new(
                             std::env::var("NODE")
@@ -116,9 +134,11 @@ fn main() {
                         .output()
                         .unwrap()
                         .stdout;
-                        serde_json::from_slice(&out).unwrap()
+                        serde_json::from_slice(&out)
+                            .with_context(|| format!("parsing js config file: {:?}", config_path))
+                            .unwrap()
                     }
-                    x => panic!("unknown config format '{}'", x),
+                    x => panic!("unknown config format '{}' (file: {:?})", x, config_path),
                 }
             } else {
                 package.build.clone().expect("no ebuilder config found, either specify one with --config or add it to package.json")
@@ -184,45 +204,73 @@ fn main() {
                     .unwrap_or_else(|| "tasje_out".to_string())
             }));
             let resources_dir = output_dir.join("resources");
-            fs::create_dir_all(&resources_dir).expect("create resources_dir");
+            fs::create_dir_all(&resources_dir)
+                .with_context(|| format!("on creating resources directory: {:?}", resources_dir))
+                .unwrap();
             let unpacked_dir = resources_dir.join("app.asar.unpacked");
             let icons_dir = output_dir.join("icons");
-            fs::create_dir_all(&icons_dir).expect("create icons_dir");
+            fs::create_dir_all(&icons_dir)
+                .with_context(|| format!("on creating icons directory: {:?}", icons_dir))
+                .unwrap();
 
             // write files into the asar
             let mut asar = AsarWriter::new();
             for (copy_source, copy_target) in &asar_copy_list {
                 asar.write_file(
                     copy_target,
-                    fs::read(copy_source).expect("reading source file"),
+                    fs::read(copy_source)
+                        .with_context(|| format!("on reading file: {:?}", copy_source))
+                        .unwrap(),
                     true,
                 )
+                .with_context(|| format!("on writing asar file: {:?}", copy_target))
                 .unwrap();
             }
-            asar.finalize(File::create(resources_dir.join("app.asar")).unwrap())
-                .unwrap();
+            let asar_path = resources_dir.join("app.asar");
+            asar.finalize(
+                File::create(&asar_path)
+                    .with_context(|| format!("on creating final asar file: {:?}", asar_path))
+                    .unwrap(),
+            )
+            .with_context(|| format!("on creating final asar: {:?}", asar_path))
+            .unwrap();
 
             // copy unpacked asar resources
             for (copy_source, copy_target) in &unpacked_copy_list {
                 let target = unpacked_dir.join(copy_target.strip_prefix("/").unwrap());
-                fs::create_dir_all(target.parent().unwrap())
-                    .expect("creating unpacked dir structure");
-                fs::copy(copy_source, target).expect("copying unpacked file");
+                let target_parent = target.parent().unwrap();
+                fs::create_dir_all(target_parent)
+                    .with_context(|| format!("on creating unpacked asar dir: {:?}", target_parent))
+                    .unwrap();
+                fs::copy(copy_source, &target)
+                    .with_context(|| format!("on copying unpacked asar file: {:?}", target))
+                    .unwrap();
             }
 
             // copy extra resources
             for (copy_source, copy_target) in &extra_copy_list {
                 let target = resources_dir.join(copy_target.strip_prefix("/").unwrap());
-                fs::create_dir_all(target.parent().unwrap())
-                    .expect("creating extra resource dir structure");
-                fs::copy(copy_source, target).expect("copying extra resource file");
+                let target_parent = target.parent().unwrap();
+                fs::create_dir_all(target_parent)
+                    .with_context(|| format!("on creating extra resource dir: {:?}", target_parent))
+                    .unwrap();
+                fs::copy(copy_source, &target)
+                    .with_context(|| format!("on writing unpacked asar file: {:?}", target))
+                    .unwrap();
             }
 
             // create a .desktop file
             let (dotdesktop_filename, dotdesktop_content) =
                 gen_dotdesktop(&ebuilder_conf, &package);
-            fs::write(output_dir.join(dotdesktop_filename), dotdesktop_content)
-                .expect("writing generated .desktop file");
+            let dotdesktop_location = output_dir.join(dotdesktop_filename);
+            fs::write(&dotdesktop_location, dotdesktop_content)
+                .with_context(|| {
+                    format!(
+                        "on writing generated .desktop file: {:?}",
+                        dotdesktop_location
+                    )
+                })
+                .unwrap();
 
             // copy/generate icons
             gen_icons(&ebuilder_conf, current_dir, icons_dir);

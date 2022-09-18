@@ -1,5 +1,6 @@
 use std::{collections::HashSet, fs, path::Path};
 
+use anyhow::Context;
 use regex::Regex;
 
 use crate::types::EBuilderConfig;
@@ -30,16 +31,18 @@ pub fn gen_icons<P: AsRef<Path>>(ebuilder: &EBuilderConfig, current_dir: P, icon
                 let height: usize = captures.get(2).unwrap().as_str().parse().unwrap();
                 icon_sizes.insert((width, height));
 
+                let target_icon_file = icons_dir.as_ref().join(filename);
                 oxipng::optimize(
                     &oxipng::InFile::Path(original_icons_dir.join(filename)),
-                    &oxipng::OutFile::Path(Some(icons_dir.as_ref().join(filename))),
+                    &oxipng::OutFile::Path(Some(target_icon_file.clone())),
                     &oxipng::Options {
                         force: true, // always write
                         fix_errors: true,
                         ..Default::default()
                     },
                 )
-                .expect("optimizing/writing icon file");
+                .with_context(|| format!("on optimizing/writing icon file: {:?}", target_icon_file))
+                .unwrap();
             }
         }
     } else if let Some(icns_file_path) = ebuilder
@@ -64,20 +67,22 @@ pub fn gen_icons<P: AsRef<Path>>(ebuilder: &EBuilderConfig, current_dir: P, icon
             let filename = format!("{width}x{height}.png");
             let out_path = icons_dir.as_ref().join(&filename);
 
-            let png_file =
-                fs::File::create(&out_path).expect("creating .png icon file (from .icns)");
+            let png_file = fs::File::create(&out_path)
+                .with_context(|| format!("creating png icon file (from icns): {:?}", out_path))
+                .unwrap();
             icns_entry
                 .write_png(png_file)
                 .expect("writing .png file from .icns");
             oxipng::optimize(
-                &oxipng::InFile::Path(out_path),
+                &oxipng::InFile::Path(out_path.clone()),
                 &oxipng::OutFile::Path(None),
                 &oxipng::Options {
                     fix_errors: true,
                     ..Default::default()
                 },
             )
-            .expect("optimizing/writing icon file");
+            .with_context(|| format!("optimizing png icon file (from icns): {:?}", out_path))
+            .unwrap();
         }
     } else if let Some(ico_file_path) = ebuilder
         .win
@@ -99,34 +104,38 @@ pub fn gen_icons<P: AsRef<Path>>(ebuilder: &EBuilderConfig, current_dir: P, icon
             let filename = format!("{width}x{height}.png");
             let out_path = icons_dir.as_ref().join(&filename);
 
-            let png_file =
-                fs::File::create(&out_path).expect("creating .png icon file (from .ico)");
+            let png_file = fs::File::create(&out_path)
+                .with_context(|| format!("creating png icon file (from ico): {:?}", out_path))
+                .unwrap();
             ico_entry
                 .decode()
                 .expect("decoding .ico entry")
                 .write_png(png_file)
                 .expect("writing .png icon file from .ico");
             oxipng::optimize(
-                &oxipng::InFile::Path(out_path),
+                &oxipng::InFile::Path(out_path.clone()),
                 &oxipng::OutFile::Path(None),
                 &oxipng::Options {
                     fix_errors: true,
                     ..Default::default()
                 },
             )
-            .expect("optimizing/writing icon file");
+            .with_context(|| format!("optimizing png icon file (from ico): {:?}", out_path))
+            .unwrap();
         }
     }
 
     // write a file with a list of sizes
+    let size_list_path = icons_dir.as_ref().join("size-list");
     fs::write(
-        icons_dir.as_ref().join("size-list"),
+        &size_list_path,
         icon_sizes
             .into_iter()
             .map(|(w, h)| format!("{w}x{h}"))
             .fold(String::new(), |a, b| a + &b + "\n"),
     )
-    .expect("writing icon size list");
+    .with_context(|| format!("on writing icon size list file: {:?}", size_list_path))
+    .unwrap();
 }
 
 #[test]

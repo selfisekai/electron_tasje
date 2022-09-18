@@ -16,6 +16,7 @@ crate-type = ["bin"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.65"
 asar = "0.1.0"
 clap = { version = "3.2.16", features = ["derive"] }
 globset = "0.4.9"

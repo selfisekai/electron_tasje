@@ -5,6 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use anyhow::Context;
 use globset::{Glob, GlobSetBuilder};
 use globwalk::{FileType, GlobWalkerBuilder};
 use path_absolutize::Absolutize;
@@ -195,7 +196,9 @@ pub fn fill_variable_template<S: AsRef<str>>(template: S) -> String {
                 "platform" => "linux".to_string(),
                 v => {
                     if let Some(envar) = v.strip_prefix("env.") {
-                        env::var(envar).expect("getting env variable contents")
+                        env::var(envar)
+                            .with_context(|| format!("variable name: {}", envar))
+                            .expect("getting env variable contents")
                     } else {
                         todo!("unknown template variable: '{variable}'")
                     }

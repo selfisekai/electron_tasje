@@ -102,7 +102,7 @@ fn main() {
                     .last()
                     .unwrap()
                 {
-                    "toml" => toml::from_slice(&config_file)
+                    "toml" => toml::from_str(std::str::from_utf8(&config_file).unwrap())
                         .with_context(|| format!("parsing toml config file: {:?}", config_path))
                         .unwrap(),
                     "yaml" | "yml" => serde_yaml::from_slice(&config_file)

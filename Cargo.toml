@@ -27,7 +27,9 @@ lazy_static = "1.4.0"
 oxipng = { version = "8.0.0", default-features = false }
 path-absolutize = "3.0.13"
 regex = "1.6.0"
-serde = { version = "1.0.144", features = ["derive"] }
+# newer versions unacceptable by security principles
+# https://github.com/serde-rs/serde/issues/2537
+serde = { version = ">=1.0, <=1.0.171", features = ["derive"] }
 serde_json = "1.0.85"
 serde_yaml = "0.9.13"
 smart-default = "0.7.1"

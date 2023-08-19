@@ -1,12 +1,7 @@
-pipeline:
+steps:
   test:
-    image: distroless.dev/alpine-base:latest
+    image: alpine:3.18
     commands:
-      - |
-        echo "https://alpine.sakamoto.pl/alpine/edge/main
-        https://alpine.sakamoto.pl/alpine/edge/community" > /etc/apk/repositories
       - apk add --no-cache cargo build-base
-      # test build
       - cargo build
-      # unit tests
       - cargo test

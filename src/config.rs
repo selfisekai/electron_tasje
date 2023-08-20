@@ -1,5 +1,6 @@
 use serde::Deserialize;
 use smart_default::SmartDefault;
+use std::borrow::Borrow;
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "camelCase")]
@@ -8,7 +9,13 @@ pub struct FileSet {
     #[serde(default)]
     pub to: Option<String>,
     #[serde(default)]
-    pub filter: MightBeSingle<String>,
+    filter: MightBeSingle<String>,
+}
+
+impl<'a> FileSet {
+    pub fn filters(&'a self) -> Vec<&'a str> {
+        self.filter.as_vec_str()
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
@@ -20,7 +27,7 @@ pub enum CopyDef {
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq, SmartDefault)]
 #[serde(untagged)]
-pub enum MightBeSingle<T> {
+enum MightBeSingle<T> {
     Multiple(Vec<T>),
     One(T),
     #[default]
@@ -49,6 +56,16 @@ impl<T> MightBeSingle<T> {
             MightBeSingle::None => Vec::new(),
             MightBeSingle::One(one) => vec![one],
             MightBeSingle::Multiple(multiple) => multiple.iter().collect(),
+        }
+    }
+}
+
+impl<'a, T: Borrow<str>> MightBeSingle<T> {
+    fn as_vec_str(&'a self) -> Vec<&'a str> {
+        match self {
+            MightBeSingle::None => Vec::new(),
+            MightBeSingle::One(one) => vec![one.borrow()],
+            MightBeSingle::Multiple(multiple) => multiple.iter().map(Borrow::borrow).collect(),
         }
     }
 }
@@ -85,15 +102,13 @@ pub struct EBuilderConfig {
     linux: EBuilderBaseConfig,
 }
 
-impl EBuilderConfig {
+impl<'a> EBuilderConfig {
     #[cfg(target_os = "linux")]
     /// this assumes no cross-compilation is ever done
-    fn current_platform(&self) -> &EBuilderBaseConfig {
+    fn current_platform(&'a self) -> &'a EBuilderBaseConfig {
         &self.linux
     }
-}
 
-impl<'a> EBuilderConfig {
     pub fn files(&'a self) -> Vec<&'a CopyDef> {
         self.current_platform().files.or(&self.base.files).as_vec()
     }
@@ -102,10 +117,7 @@ impl<'a> EBuilderConfig {
         self.current_platform()
             .asar_unpack
             .or(&self.base.asar_unpack)
-            .as_vec()
-            .into_iter()
-            .map(String::as_str)
-            .collect()
+            .as_vec_str()
     }
 
     pub fn extra_resources(&'a self) -> Vec<&'a CopyDef> {
@@ -129,6 +141,7 @@ mod tests {
     fn test_parse_empty() -> Result<()> {
         let bc: EBuilderConfig = serde_json::from_value(json!({
             "files": null,
+            "asarUnpack": [],
         }))?;
         assert!(bc.files().is_empty());
         assert!(bc.asar_unpack().is_empty());

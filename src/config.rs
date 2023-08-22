@@ -72,9 +72,18 @@ impl<'a, T: Borrow<str>> MightBeSingle<T> {
 
 #[derive(Debug, Clone, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-struct EBuilderBaseConfig {
-    product_name: Option<String>,
-    copyright: Option<String>,
+pub struct CommonOverridableProperties {
+    pub description: Option<String>,
+    pub executable_name: Option<String>,
+    pub product_name: Option<String>,
+    pub desktop_name: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct EBuilderBaseConfig {
+    #[serde(flatten)]
+    pub(crate) common: CommonOverridableProperties,
 
     #[serde(default)]
     files: MightBeSingle<CopyDef>,
@@ -82,9 +91,7 @@ struct EBuilderBaseConfig {
     asar_unpack: MightBeSingle<String>,
     #[serde(default)]
     extra_resources: MightBeSingle<CopyDef>,
-
     // directories: Option<EBDirectories>,
-    executable_name: Option<String>,
     // protocols: Option<EBProtocolOrPlural>,
     // file_associations: Option<EBFileAssocOrPlural>,
 }
@@ -96,7 +103,7 @@ struct EBuilderBaseConfig {
 /// tries to follow https://www.electron.build/configuration/configuration
 pub struct EBuilderConfig {
     #[serde(flatten)]
-    base: EBuilderBaseConfig,
+    pub(crate) base: EBuilderBaseConfig,
 
     #[serde(default)]
     linux: EBuilderBaseConfig,
@@ -104,8 +111,9 @@ pub struct EBuilderConfig {
 
 impl<'a> EBuilderConfig {
     #[cfg(target_os = "linux")]
+    #[inline]
     /// this assumes no cross-compilation is ever done
-    fn current_platform(&'a self) -> &'a EBuilderBaseConfig {
+    pub(crate) fn current_platform(&'a self) -> &'a EBuilderBaseConfig {
         &self.linux
     }
 

@@ -42,6 +42,10 @@ impl App {
         let config = serde_json::from_str(&fs::read_to_string(config_file.as_ref())?)?;
         Ok(App { package, config })
     }
+
+    pub fn config<'a>(&'a self) -> &'a EBuilderConfig {
+        &self.config
+    }
 }
 
 macro_rules! common_property {

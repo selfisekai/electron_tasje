@@ -9,7 +9,7 @@ pub struct FileSet {
     #[serde(default)]
     pub to: Option<String>,
     #[serde(default)]
-    filter: MightBeSingle<String>,
+    pub(crate) filter: MightBeSingle<String>,
 }
 
 impl<'a> FileSet {
@@ -27,7 +27,7 @@ pub enum CopyDef {
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq, SmartDefault)]
 #[serde(untagged)]
-enum MightBeSingle<T> {
+pub(crate) enum MightBeSingle<T> {
     Multiple(Vec<T>),
     One(T),
     #[default]
@@ -57,6 +57,12 @@ impl<T> MightBeSingle<T> {
             MightBeSingle::One(one) => vec![one],
             MightBeSingle::Multiple(multiple) => multiple.iter().collect(),
         }
+    }
+}
+
+impl<T> From<Vec<T>> for MightBeSingle<T> {
+    fn from(value: Vec<T>) -> Self {
+        Self::Multiple(value)
     }
 }
 

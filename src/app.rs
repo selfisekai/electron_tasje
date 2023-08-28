@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Result};
 use serde_json::Value;
@@ -11,14 +11,23 @@ use crate::package::Package;
 pub struct App {
     package: Package,
     config: EBuilderConfig,
+    pub root: PathBuf,
 }
 
 impl App {
-    pub fn new(package: Package, config: EBuilderConfig) -> App {
-        App { package, config }
+    pub fn new(package: Package, config: EBuilderConfig, root: PathBuf) -> App {
+        App {
+            package,
+            config,
+            root,
+        }
     }
 
-    pub fn new_from_package(package: Package) -> Result<App> {
+    pub fn new_from_package_file<P: AsRef<Path>>(package_file: P) -> Result<App> {
+        let package_file = package_file.as_ref();
+        let package = Package::try_from(serde_json::from_str::<Value>(&fs::read_to_string(
+            package_file,
+        )?)?)?;
         let config = serde_json::from_value(
             package
                 .value
@@ -26,21 +35,24 @@ impl App {
                 .ok_or_else(|| anyhow!("no build config in package"))?
                 .clone(),
         )?;
-        Ok(App { package, config })
-    }
-
-    pub fn new_from_package_file<P: AsRef<Path>>(package_file: P) -> Result<App> {
-        App::new_from_package(Package::try_from(serde_json::from_str::<Value>(
-            &fs::read_to_string(package_file.as_ref())?,
-        )?)?)
+        Ok(App {
+            package,
+            config,
+            root: package_file.parent().unwrap().to_path_buf(),
+        })
     }
 
     pub fn new_from_files<P: AsRef<Path>>(package_file: P, config_file: P) -> Result<App> {
+        let package_file = package_file.as_ref();
         let package = Package::try_from(serde_json::from_str::<Value>(&fs::read_to_string(
-            package_file.as_ref(),
+            package_file,
         )?)?)?;
         let config = serde_json::from_str(&fs::read_to_string(config_file.as_ref())?)?;
-        Ok(App { package, config })
+        Ok(App {
+            package,
+            config,
+            root: package_file.parent().unwrap().to_path_buf(),
+        })
     }
 
     pub fn config<'a>(&'a self) -> &'a EBuilderConfig {

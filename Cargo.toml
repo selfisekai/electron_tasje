@@ -7,12 +7,19 @@ authors = ["lauren n. liberda <lauren@selfisekai.rocks>"]
 repository = "https://codeberg.org/selfisekai/electron_tasje"
 license = "Apache-2.0"
 
+[[bin]]
+name = "tasje"
+required-features = ["clap"]
+
+[features]
+backtrace = ["anyhow/backtrace"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 anyhow = "1.0.65"
 asar = "0.2.0"
-clap = { version = "4.3.21", features = ["derive"] }
+clap = { version = "4.3.21", features = ["derive"], optional = true }
 globreeks = "0.1.0"
 globset = "0.4.9"
 globwalk = "0.8.1"

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use asar::AsarWriter;
 use once_cell::sync::Lazy;
-use std::fs::{read, File};
+use std::fs::{self, read, File};
 use std::path::PathBuf;
 
 use crate::app::App;
@@ -13,6 +13,7 @@ static ROOT: Lazy<PathBuf> = Lazy::new(|| PathBuf::from("/"));
 pub struct PackingProcessBuilder {
     app: App,
     base_output_dir: Option<PathBuf>,
+    resources_output_dir: Option<PathBuf>,
 }
 
 impl PackingProcessBuilder {
@@ -20,6 +21,7 @@ impl PackingProcessBuilder {
         PackingProcessBuilder {
             app,
             base_output_dir: None,
+            resources_output_dir: None,
         }
     }
 
@@ -32,9 +34,19 @@ impl PackingProcessBuilder {
     }
 
     pub fn build(self) -> PackingProcess {
+        let base_output_dir = self.app.root.clone().join(
+            self.base_output_dir
+                .clone()
+                .unwrap_or_else(|| "tasje_out".into()),
+        );
+        let resources_output_dir = base_output_dir.join(
+            self.resources_output_dir
+                .unwrap_or_else(|| "resources".into()),
+        );
         PackingProcess {
             app: self.app,
-            base_output_dir: self.base_output_dir.unwrap(),
+            base_output_dir,
+            resources_output_dir,
         }
     }
 }
@@ -42,18 +54,23 @@ impl PackingProcessBuilder {
 pub struct PackingProcess {
     pub app: App,
     base_output_dir: PathBuf,
+    resources_output_dir: PathBuf,
 }
 
 impl PackingProcess {
     pub fn proceed(self) -> Result<()> {
+        fs::create_dir(&self.base_output_dir)?;
+        fs::create_dir(&self.resources_output_dir)?;
+
         self.pack_asar()?;
+
         Ok(())
     }
 
     fn pack_asar(&self) -> Result<()> {
         let mut asar = AsarWriter::new();
-        let asar_file = File::create(self.base_output_dir.join("app.asar"))?;
-        for (source, dest) in Walker::new(PathBuf::from(""), self.app.config().files())? {
+        let asar_file = File::create(self.resources_output_dir.join("app.asar"))?;
+        for (source, dest) in Walker::new(self.app.root.clone(), self.app.config().files())? {
             asar.write_file(ROOT.join(dest), read(source)?, true)?;
         }
         asar.finalize(asar_file)?;

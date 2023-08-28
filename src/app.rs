@@ -42,7 +42,11 @@ impl App {
         })
     }
 
-    pub fn new_from_files<P: AsRef<Path>>(package_file: P, config_file: P) -> Result<App> {
+    pub fn new_from_files<P1, P2>(package_file: P1, config_file: P2) -> Result<App>
+    where
+        P1: AsRef<Path>,
+        P2: AsRef<Path>,
+    {
         let package_file = package_file.as_ref();
         let package = Package::try_from(serde_json::from_str::<Value>(&fs::read_to_string(
             package_file,

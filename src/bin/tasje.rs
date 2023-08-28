@@ -3,10 +3,8 @@ use std::env::current_dir;
 use anyhow::Result;
 use clap::Parser;
 
-use electron_tasje::{
-    app::App,
-    pack::{PackingProcess, PackingProcessBuilder},
-};
+use electron_tasje::app::App;
+use electron_tasje::pack::{PackingProcess, PackingProcessBuilder};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -56,7 +54,12 @@ fn main() -> Result<()> {
             additional_extra_resources,
         } => {
             let root = current_dir()?;
-            let app = App::new_from_package_file(root.join("package.json"))?;
+            let package_path = root.join("package.json");
+            let app = if let Some(config_path) = &config {
+                App::new_from_files(&package_path, root.join(config_path))?
+            } else {
+                App::new_from_package_file(&package_path)?
+            };
             PackingProcessBuilder::new(app).build().proceed()?;
         }
     }

@@ -11,12 +11,12 @@ keywords = ["electron"]
 
 [[bin]]
 name = "tasje"
-required-features = ["clap"]
+required-features = ["cli"]
 
 [features]
+default = ["cli"]
+cli = ["clap"]
 backtrace = ["anyhow/backtrace"]
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 anyhow = "1.0.65"

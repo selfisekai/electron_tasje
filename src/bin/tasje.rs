@@ -4,7 +4,7 @@ use anyhow::Result;
 use clap::Parser;
 
 use electron_tasje::app::App;
-use electron_tasje::pack::{PackingProcess, PackingProcessBuilder};
+use electron_tasje::pack::PackingProcessBuilder;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -46,12 +46,12 @@ fn main() -> Result<()> {
 
     match args {
         Pack {
-            verbose,
-            output,
+            verbose: _,
+            output: _,
             config,
-            additional_files,
-            additional_asar_unpack,
-            additional_extra_resources,
+            additional_files: _,
+            additional_asar_unpack: _,
+            additional_extra_resources: _,
         } => {
             let root = current_dir()?;
             let package_path = root.join("package.json");
@@ -60,7 +60,9 @@ fn main() -> Result<()> {
             } else {
                 App::new_from_package_file(&package_path)?
             };
-            PackingProcessBuilder::new(app).build().proceed()?;
+            PackingProcessBuilder::new(app)
+                .build()
+                .proceed()?;
         }
     }
 

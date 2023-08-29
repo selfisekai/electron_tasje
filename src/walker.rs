@@ -5,19 +5,28 @@ use std::vec::IntoIter;
 use walkdir::WalkDir;
 
 use crate::config::{CopyDef, FileSet};
+use crate::environment::Environment;
+use crate::utils::fill_variable_template;
 
 #[derive(Debug)]
 pub(crate) struct Walker<'a> {
     root: PathBuf,
+    environment: Environment,
     globs: Globreeks,
     sets: IntoIter<&'a FileSet>,
     current_set: Option<&'a FileSet>,
     current_walk: walkdir::IntoIter,
     done_with_globs: bool,
+    unpack_globs: Option<Globreeks>,
 }
 
 impl<'a> Walker<'a> {
-    pub fn new(root: PathBuf, to_copy: Vec<&'a CopyDef>) -> Result<Self> {
+    pub(crate) fn new(
+        root: PathBuf,
+        environment: Environment,
+        to_copy: Vec<&'a CopyDef>,
+        unpack_list: Option<Vec<&str>>,
+    ) -> Result<Self> {
         let mut globs = Vec::new();
         let mut sets = Vec::new();
         for def in to_copy {
@@ -29,26 +38,37 @@ impl<'a> Walker<'a> {
 
         Ok(Self {
             root: root.clone(),
-            globs: Globreeks::new(globs)?,
+            environment,
+            globs: Globreeks::new(
+                globs
+                    .iter()
+                    .map(|f| fill_variable_template(f, environment)),
+            )?,
             sets: sets.into_iter(),
             current_set: None,
-            current_walk: WalkDir::new(root).into_iter(),
-            done_with_globs: false,
+            current_walk: WalkDir::new(root).follow_links(true).into_iter(),
+            done_with_globs: globs.is_empty(),
+            unpack_globs: if let Some(gl) = unpack_list {
+                Some(Globreeks::new(gl)?)
+            } else {
+                None
+            },
         })
     }
 
-    fn next_current_walk(&mut self) -> Option<PathBuf> {
+    fn next_current_walk(&mut self) -> Option<(PathBuf, bool)> {
         while let Some(next) = self.current_walk.next() {
             if let Ok(direntry) = next {
-                if direntry.file_type().is_dir() {
-                    continue;
-                }
                 let path = direntry.path().strip_prefix(&self.root).unwrap();
-                if let Some(path_str) = path.to_str() {
-                    if self.globs.evaluate(path_str) {
-                        let buf = path.to_path_buf();
-                        return Some(buf);
-                    }
+                let path_cand = globreeks::Candidate::new(path);
+                if self.globs.evaluate_candidate(&path_cand) && direntry.file_type().is_file() {
+                    let unpack = self
+                        .unpack_globs
+                        .as_ref()
+                        .map(|r| r.evaluate_candidate(&path_cand))
+                        .unwrap_or(false);
+                    let buf = path.to_path_buf();
+                    return Some((buf, unpack));
                 }
             }
         }
@@ -58,35 +78,43 @@ impl<'a> Walker<'a> {
 
 impl<'a> Iterator for Walker<'a> {
     /// source, dest
-    type Item = (PathBuf, PathBuf);
+    type Item = (PathBuf, PathBuf, bool);
 
     fn next(&mut self) -> Option<Self::Item> {
         if !self.done_with_globs {
-            if let Some(path) = self.next_current_walk() {
-                return Some((self.root.join(&path), path));
+            if let Some((path, unpack)) = self.next_current_walk() {
+                return Some((self.root.join(&path), path, unpack));
             }
             self.done_with_globs = true;
         }
 
         loop {
             if let Some(set) = self.current_set {
-                if let Some(path) = self.next_current_walk() {
+                if let Some((path, unpack)) = self.next_current_walk() {
                     return Some((
                         self.root.join(&path),
                         set.to
                             .as_ref()
                             .map(|to| Path::new(&to).join(&path.strip_prefix(&set.from).unwrap()))
                             .unwrap_or(path),
+                        unpack,
                     ));
                 }
             }
             self.current_set = self.sets.next();
             if let Some(current_set) = self.current_set {
-                self.current_walk = WalkDir::new(self.root.join(&current_set.from)).into_iter();
+                self.current_walk = WalkDir::new(self.root.join(&current_set.from))
+                    .follow_links(true)
+                    .into_iter();
                 let mut filters = current_set.filters();
                 if !filters.iter().any(|f| !f.starts_with('!')) {
-                    filters = vec!["**/*"];
+                    let mut new_filters = vec!["**/*"];
+                    new_filters.extend(filters);
+                    filters = new_filters;
                 }
+                let filters = filters
+                    .into_iter()
+                    .map(|f| fill_variable_template(f, self.environment));
                 self.globs = Globreeks::new(filters).unwrap();
             } else {
                 return None;
@@ -97,25 +125,26 @@ impl<'a> Iterator for Walker<'a> {
 
 #[cfg(test)]
 mod tests {
+    use anyhow::Result;
     use std::env::current_dir;
 
     use crate::app::App;
+    use crate::environment::HOST_ENVIRONMENT;
 
     use super::Walker;
-    use anyhow::Result;
 
     #[test]
     fn test_walking() -> Result<()> {
         let root = current_dir()?.join("src").join("test_assets");
         let app = App::new_from_package_file(root.join("package.json"))?;
-        let walker = Walker::new(root, app.config().files())?;
+        let walker = Walker::new(root, HOST_ENVIRONMENT, app.config().files(), None)?;
 
         let full_list: Vec<_> = walker.collect();
 
         assert_eq!(
             full_list
                 .into_iter()
-                .map(|(_, dest)| dest.to_str().unwrap().to_string())
+                .map(|(_, dest, _)| dest.to_str().unwrap().to_string())
                 .collect::<Vec<_>>(),
             vec!["build/bundle.aoeuid.js", "cuild/bundle.aoeuid.js",]
         );

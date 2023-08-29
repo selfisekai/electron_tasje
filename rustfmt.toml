@@ -1,0 +1,4 @@
+chain_width = 50
+group_imports = "One"
+imports_granularity = "Module"
+unstable_features = true

@@ -96,6 +96,8 @@ pub(crate) struct EBuilderBaseConfig {
     #[serde(default)]
     asar_unpack: MightBeSingle<String>,
     #[serde(default)]
+    extra_files: MightBeSingle<CopyDef>,
+    #[serde(default)]
     extra_resources: MightBeSingle<CopyDef>,
     // directories: Option<EBDirectories>,
     // protocols: Option<EBProtocolOrPlural>,
@@ -124,7 +126,10 @@ impl<'a> EBuilderConfig {
     }
 
     pub fn files(&'a self) -> Vec<&'a CopyDef> {
-        self.current_platform().files.or(&self.base.files).as_vec()
+        self.current_platform()
+            .files
+            .or(&self.base.files)
+            .as_vec()
     }
 
     pub fn asar_unpack(&'a self) -> Vec<&'a str> {
@@ -132,6 +137,13 @@ impl<'a> EBuilderConfig {
             .asar_unpack
             .or(&self.base.asar_unpack)
             .as_vec_str()
+    }
+
+    pub fn extra_files(&'a self) -> Vec<&'a CopyDef> {
+        self.current_platform()
+            .extra_files
+            .or(&self.base.extra_files)
+            .as_vec()
     }
 
     pub fn extra_resources(&'a self) -> Vec<&'a CopyDef> {

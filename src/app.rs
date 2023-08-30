@@ -6,6 +6,7 @@ use serde_json::Value;
 
 use crate::config::EBuilderConfig;
 use crate::package::Package;
+use crate::utils::filesafe_package_name;
 
 #[derive(Debug, Clone)]
 pub struct App {
@@ -51,6 +52,7 @@ impl App {
         let package = Package::try_from(serde_json::from_str::<Value>(&fs::read_to_string(
             package_file,
         )?)?)?;
+        // TODO: handle all the other formats
         let config = serde_json::from_str(&fs::read_to_string(config_file.as_ref())?)?;
         Ok(App {
             package,
@@ -77,29 +79,33 @@ macro_rules! common_property {
     };
 }
 
-impl App {
-    pub fn description<'a>(&'a self) -> Option<&'a str> {
+impl<'a> App {
+    pub fn description(&'a self) -> Option<&'a str> {
         common_property!(self, description).map(String::as_str)
     }
 
-    pub fn executable_name<'a>(&'a self) -> &'a str {
-        // TODO: ensure it's filesafe
-        common_property!(self, executable_name)
-            .unwrap_or(&self.package.manifest.name)
-            .as_str()
+    pub fn executable_name(&'a self) -> Result<String> {
+        filesafe_package_name(
+            common_property!(self, executable_name).unwrap_or(&self.package.manifest.name),
+        )
     }
 
-    pub fn product_name<'a>(&'a self) -> &'a str {
+    pub fn product_name(&'a self) -> &'a str {
         common_property!(self, product_name)
             .unwrap_or(&self.package.manifest.name)
             .as_str()
     }
 
-    pub fn desktop_name<'a>(&'a self) -> String {
-        // TODO: ensure it's filesafe
+    pub fn desktop_name(&'a self) -> Result<String> {
         common_property!(self, desktop_name)
             .map(String::clone)
-            .unwrap_or_else(|| format!("{}.desktop", self.package.manifest.name))
+            .map(Result::Ok)
+            .unwrap_or_else(|| {
+                Ok(format!(
+                    "{}.desktop",
+                    filesafe_package_name(&self.package.manifest.name)?
+                ))
+            })
     }
 }
 
@@ -116,9 +122,9 @@ mod tests {
         println!("{:#?}", app);
 
         assert_eq!(app.description(), Some("Packs Electron apps"));
-        assert_eq!(app.executable_name(), "tasje");
+        assert_eq!(app.executable_name()?, "tasje");
         assert_eq!(app.product_name(), "Tasje");
-        assert_eq!(app.desktop_name(), "electron_tasje.desktop");
+        assert_eq!(app.desktop_name()?, "electron_tasje.desktop");
 
         Ok(())
     }

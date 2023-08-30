@@ -1,6 +1,6 @@
 use std::env;
 
-use anyhow::Context;
+use anyhow::{bail, Context, Result};
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 
@@ -8,7 +8,10 @@ use crate::environment::Environment;
 
 static TEMPLATE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r#"\$\{([a-zA-Z_. ]+)\}"#).unwrap());
 
-pub fn fill_variable_template<S: AsRef<str>>(template: S, environment: Environment) -> String {
+pub(crate) fn fill_variable_template<S: AsRef<str>>(
+    template: S,
+    environment: Environment,
+) -> String {
     TEMPLATE_REGEX
         .replace_all(template.as_ref(), |captures: &Captures| -> String {
             let variable = captures.get(1).unwrap().as_str().trim();
@@ -27,4 +30,32 @@ pub fn fill_variable_template<S: AsRef<str>>(template: S, environment: Environme
             }
         })
         .to_string()
+}
+
+pub fn filesafe_package_name(name: &str) -> Result<String> {
+    let new = name.replace('@', "").replace('/', "-");
+    if new
+        .chars()
+        .any(|ch| !ch.is_ascii_alphanumeric() && ch != '-' && ch != '_')
+    {
+        bail!("invalid package name: {:?}", name);
+    }
+    Ok(new)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::filesafe_package_name;
+    use anyhow::Result;
+
+    #[test]
+    fn test_filesafe_name() -> Result<()> {
+        assert_eq!(filesafe_package_name("tasje")?, "tasje");
+        assert_eq!(
+            filesafe_package_name("@bitwarden/desktop")?,
+            "bitwarden-desktop"
+        );
+
+        Ok(())
+    }
 }

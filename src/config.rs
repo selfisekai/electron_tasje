@@ -1,6 +1,7 @@
 use serde::Deserialize;
 use smart_default::SmartDefault;
 use std::borrow::Borrow;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "camelCase")]
@@ -23,6 +24,32 @@ impl<'a> FileSet {
 pub enum CopyDef {
     Simple(String),
     Set(FileSet),
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct EBDirectories {
+    pub output: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProtocolAssociation {
+    pub name: Option<String>,
+    pub schemes: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileAssociation {
+    ext: MightBeSingle<String>,
+    pub mime_type: Option<String>,
+}
+
+impl FileAssociation {
+    pub fn exts(&self) -> Vec<&str> {
+        self.ext.as_vec_str()
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq, SmartDefault)]
@@ -99,9 +126,19 @@ pub(crate) struct EBuilderBaseConfig {
     extra_files: MightBeSingle<CopyDef>,
     #[serde(default)]
     extra_resources: MightBeSingle<CopyDef>,
-    // directories: Option<EBDirectories>,
-    // protocols: Option<EBProtocolOrPlural>,
-    // file_associations: Option<EBFileAssocOrPlural>,
+
+    #[serde(default)]
+    directories: EBDirectories,
+
+    #[serde(default)]
+    protocols: MightBeSingle<ProtocolAssociation>,
+    #[serde(default)]
+    file_associations: MightBeSingle<FileAssociation>,
+
+    // "linux-specific" section
+    #[serde(default)]
+    category: MightBeSingle<String>,
+    desktop: Option<HashMap<String, String>>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -151,6 +188,41 @@ impl<'a> EBuilderConfig {
             .extra_resources
             .or(&self.base.extra_resources)
             .as_vec()
+    }
+
+    pub fn desktop_properties(&'a self) -> Option<Vec<(String, String)>> {
+        self.current_platform()
+            .desktop
+            .as_ref()
+            .or_else(|| self.base.desktop.as_ref())
+            .map(|m| m.clone().into_iter().collect())
+    }
+
+    pub fn output_dir(&'a self) -> Option<&'a str> {
+        self.current_platform()
+            .directories
+            .output
+            .as_deref()
+            .or_else(|| self.base.directories.output.as_deref())
+    }
+
+    pub fn protocol_associations(&'a self) -> Vec<&ProtocolAssociation> {
+        self.current_platform()
+            .protocols
+            .or(&self.base.protocols)
+            .as_vec()
+    }
+
+    pub fn file_associations(&'a self) -> Vec<&FileAssociation> {
+        self.current_platform()
+            .file_associations
+            .or(&self.base.file_associations)
+            .as_vec()
+    }
+
+    /// https://specifications.freedesktop.org/menu-spec/latest/apa.html#main-category-registry
+    pub fn desktop_categories(&'a self) -> Vec<&'a str> {
+        self.current_platform().category.as_vec_str()
     }
 }
 

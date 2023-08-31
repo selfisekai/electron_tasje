@@ -6,7 +6,8 @@ use std::path::{Path, PathBuf};
 
 use crate::app::App;
 use crate::config::CopyDef;
-use crate::environment::{Environment, HOST_ENVIRONMENT};
+use crate::desktop::DesktopGenerator;
+use crate::environment::{Environment, Platform, HOST_ENVIRONMENT};
 use crate::walker::Walker;
 
 static ROOT: Lazy<PathBuf> = Lazy::new(|| PathBuf::from("/"));
@@ -81,6 +82,8 @@ impl PackingProcess {
             &self.resources_output_dir,
         )?;
 
+        self.generate_desktop_file()?;
+
         Ok(())
     }
 
@@ -123,6 +126,18 @@ impl PackingProcess {
             let unpack_dest = target.join(dest);
             fs::create_dir_all(unpack_dest.parent().unwrap())?;
             fs::copy(&source, &unpack_dest)?;
+        }
+
+        Ok(())
+    }
+
+    fn generate_desktop_file(&self) -> Result<()> {
+        if self.environment.platform == Platform::Linux {
+            fs::write(
+                self.base_output_dir
+                    .join(self.app.desktop_name()?),
+                DesktopGenerator::new().generate(&self.app)?,
+            )?;
         }
 
         Ok(())

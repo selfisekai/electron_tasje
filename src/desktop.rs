@@ -1,80 +1,85 @@
-use crate::types::{EBFileAssoc, EBProtocol, EBuilderConfig, PackageJson};
+use anyhow::Result;
 
-/// https://www.freedesktop.org/wiki/Specifications/desktop-entry-spec/
-pub fn gen_dotdesktop(ebuilder: &EBuilderConfig, package: &PackageJson) -> (String, String) {
-    let eb_linux = ebuilder.linux.clone().unwrap_or_default();
-    let exec_name = eb_linux
-        .executable_name
-        .as_ref()
-        .or(ebuilder.executable_name.as_ref())
-        .unwrap_or(&package.name);
-    let mut lines = vec![
-        "[Desktop Entry]".to_string(),
-        format!(
-            "Name={}",
-            ebuilder
-                .product_name
-                .as_ref()
-                .or_else(|| package.product_name.as_ref())
-                .unwrap_or(&package.name),
-        ),
-        format!("Exec=/usr/bin/{} %U", exec_name),
-        "Terminal=false".to_string(),
-        "Type=Application".to_string(),
-        format!("Icon={}", exec_name),
-    ];
-    if let Some(properties) = eb_linux.desktop {
-        for (key, val) in properties {
-            lines.push(format!("{}={}", key, val));
+use crate::app::App;
+
+pub struct DesktopGenerator {
+    entries: Vec<(String, String)>,
+}
+
+impl DesktopGenerator {
+    pub fn new() -> Self {
+        Self {
+            entries: Vec::new(),
         }
     }
-    if let Some(comment) = &package.description {
-        lines.push(format!("Comment={}", comment));
+
+    fn add_entry<K, V>(&mut self, key: K, val: V)
+    where
+        K: AsRef<str>,
+        V: AsRef<str>,
+    {
+        self.entries
+            .push((String::from(key.as_ref()), String::from(val.as_ref())));
     }
-    let mut mimes = vec![];
-    if let Some(protocols) = eb_linux.protocols.or_else(|| ebuilder.protocols.clone()) {
-        for protocol in Vec::<EBProtocol>::from(protocols) {
-            for scheme in protocol.schemes {
+
+    /// https://www.freedesktop.org/wiki/Specifications/desktop-entry-spec/
+    pub fn generate(mut self, app: &App) -> Result<String> {
+        let exec_name = app.executable_name()?;
+
+        self.add_entry("Name", app.product_name());
+        self.add_entry("Exec", format!("/usr/bin/{} %U", exec_name));
+        self.add_entry("Terminal", "false");
+        self.add_entry("Type", "Application");
+        self.add_entry("Icon", exec_name);
+        if let Some(properties) = app.config().desktop_properties() {
+            // order might and will be random. serde_json has `preserve_order` feature,
+            // but then EBuilderConfig internally parses it into a HashMap.
+            // also the config format might not be json.
+            for (key, val) in properties {
+                self.add_entry(key, val);
+            }
+        }
+        if let Some(comment) = app.description() {
+            self.add_entry("Comment", comment);
+        }
+
+        let mut mimes = vec![];
+        for protocol in app.config().protocol_associations() {
+            for scheme in &protocol.schemes {
                 mimes.push(format!("x-scheme-handler/{}", scheme));
             }
         }
-    }
-    if let Some(file_assocs) = eb_linux
-        .file_associations
-        .or_else(|| ebuilder.file_associations.clone())
-    {
-        for file_ass in Vec::<EBFileAssoc>::from(file_assocs) {
-            if let Some(mime_type) = file_ass.mime_type {
-                mimes.push(mime_type);
+        for file_ass in app.config().file_associations() {
+            if let Some(mime_type) = &file_ass.mime_type {
+                mimes.push(mime_type.clone());
             }
         }
-    }
-    if mimes.len() > 0 {
-        lines.push(format!("MimeType={};", mimes.join(";")));
-    }
+        if !mimes.is_empty() {
+            self.add_entry("MimeType", mimes.join(";"));
+        }
 
-    if let Some(categories) = eb_linux.category {
-        lines.push(format!("Categories={}", categories));
-    }
-    // end with empty line
-    lines.push("".to_string());
+        let categories = app.config().desktop_categories();
+        if !categories.is_empty() {
+            self.add_entry("Categories", categories.join(";"));
+        }
 
-    (format!("{}.desktop", package.name), lines.join("\n"))
+        let mut contents = String::from("[Desktop Entry]\n");
+        for (key, val) in self.entries {
+            contents.push_str(&format!("{key}={val}\n"));
+        }
+
+        Ok(contents)
+    }
 }
 
 #[test]
-fn test_gen_dotdesktop() {
-    use crate::types::PackageJson;
+fn test_gen_desktop() -> Result<()> {
+    let app: App = App::new_from_package_file("src/test_assets/package.json")?;
 
-    let package: PackageJson =
-        serde_json::from_str(include_str!("test_assets/package.json")).unwrap();
+    let generator = DesktopGenerator::new();
 
-    let (dotdesktop_name, dotdesktop_content) =
-        gen_dotdesktop(package.build.as_ref().unwrap(), &package);
-
-    assert_eq!(dotdesktop_name, "electron_tasje.desktop");
     assert_eq!(
-        dotdesktop_content,
+        generator.generate(&app)?,
         r#"[Desktop Entry]
 Name=Tasje
 Exec=/usr/bin/tasje %U
@@ -83,8 +88,10 @@ Type=Application
 Icon=tasje
 CustomField=custom_value
 Comment=Packs Electron apps
-MimeType=x-scheme-handler/tasje;x-scheme-handler/ebuilder;x-scheme-handler/electron-builder;application/x-tas;
+MimeType=x-scheme-handler/tasje;x-scheme-handler/ebuilder;x-scheme-handler/electron-builder;application/x-tas
 Categories=Tools
 "#
     );
+
+    Ok(())
 }

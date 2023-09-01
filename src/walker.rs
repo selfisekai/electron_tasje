@@ -126,7 +126,7 @@ impl<'a> Iterator for Walker<'a> {
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use std::env::current_dir;
+    use std::path::PathBuf;
 
     use crate::app::App;
     use crate::environment::HOST_ENVIRONMENT;
@@ -135,7 +135,7 @@ mod tests {
 
     #[test]
     fn test_walking() -> Result<()> {
-        let root = current_dir()?.join("src").join("test_assets");
+        let root = PathBuf::from("test_assets");
         let app = App::new_from_package_file(root.join("package.json"))?;
         let walker = Walker::new(root, HOST_ENVIRONMENT, app.config().files(), None)?;
 

@@ -190,7 +190,7 @@ mod tests {
     fn test_linux() -> Result<()> {
         let icons_dir = Path::new(".test-workspace/icons_linux");
         create_dir_all(icons_dir)?;
-        let app = App::new_from_package_file("src/test_assets/package.json")?;
+        let app = App::new_from_package_file("test_assets/package.json")?;
         IconGenerator::new().generate(app.icon_locations(), icons_dir)?;
         assert_eq!(
             read_to_string(icons_dir.join("size-list"))?,
@@ -208,7 +208,7 @@ mod tests {
     fn test_win() -> Result<()> {
         let icons_dir = Path::new(".test-workspace/icons_win");
         create_dir_all(icons_dir)?;
-        let app = App::new_from_package_file("src/test_assets/package-win.json")?;
+        let app = App::new_from_package_file("test_assets/package-win.json")?;
         IconGenerator::new().generate(app.icon_locations(), icons_dir)?;
         assert_eq!(read_to_string(icons_dir.join("size-list"))?, "32x32");
         for name in ["32x32.png"] {
@@ -221,7 +221,7 @@ mod tests {
     fn test_mac() -> Result<()> {
         let icons_dir = Path::new(".test-workspace/icons_mac");
         create_dir_all(icons_dir)?;
-        let app = App::new_from_package_file("src/test_assets/package-mac.json")?;
+        let app = App::new_from_package_file("test_assets/package-mac.json")?;
         IconGenerator::new().generate(app.icon_locations(), icons_dir)?;
         assert_eq!(
             read_to_string(icons_dir.join("size-list"))?,

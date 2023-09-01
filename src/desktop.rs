@@ -74,7 +74,7 @@ impl DesktopGenerator {
 
 #[test]
 fn test_gen_desktop() -> Result<()> {
-    let app: App = App::new_from_package_file("src/test_assets/package.json")?;
+    let app: App = App::new_from_package_file("test_assets/package.json")?;
 
     let generator = DesktopGenerator::new();
 

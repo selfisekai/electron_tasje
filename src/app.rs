@@ -125,7 +125,7 @@ mod tests {
 
     #[test]
     fn test_parse() -> Result<()> {
-        let app = App::new_from_package_file("src/test_assets/package.json")?;
+        let app = App::new_from_package_file("test_assets/package.json")?;
 
         println!("{:#?}", app);
 

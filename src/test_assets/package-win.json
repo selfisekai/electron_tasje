@@ -4,7 +4,7 @@
     "version": "2.1.3.7-jp2",
     "build": {
         "win": {
-            "icon": "src/test_assets/icons_win/icon.ico"
+            "icon": "icons_win/icon.ico"
         }
     }
 }

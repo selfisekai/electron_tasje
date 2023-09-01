@@ -8,6 +8,7 @@ use crate::app::App;
 use crate::config::CopyDef;
 use crate::desktop::DesktopGenerator;
 use crate::environment::{Environment, Platform, HOST_ENVIRONMENT};
+use crate::icons::IconGenerator;
 use crate::walker::Walker;
 
 static ROOT: Lazy<PathBuf> = Lazy::new(|| PathBuf::from("/"));
@@ -16,6 +17,7 @@ static ROOT: Lazy<PathBuf> = Lazy::new(|| PathBuf::from("/"));
 pub struct PackingProcessBuilder {
     app: App,
     base_output_dir: Option<PathBuf>,
+    icons_output_dir: Option<PathBuf>,
     resources_output_dir: Option<PathBuf>,
     target_environment: Option<Environment>,
 }
@@ -25,6 +27,7 @@ impl PackingProcessBuilder {
         PackingProcessBuilder {
             app,
             base_output_dir: None,
+            icons_output_dir: None,
             resources_output_dir: None,
             target_environment: None,
         }
@@ -32,9 +35,9 @@ impl PackingProcessBuilder {
 
     pub fn base_output_dir<P>(mut self, path: P) -> Self
     where
-        P: Into<PathBuf>,
+        P: AsRef<Path>,
     {
-        self.base_output_dir = Some(path.into());
+        self.base_output_dir = Some(self.app.root.join(path.as_ref()));
         self
     }
 
@@ -49,6 +52,10 @@ impl PackingProcessBuilder {
                 .clone()
                 .unwrap_or_else(|| "tasje_out".into()),
         );
+        let icons_output_dir = base_output_dir.join(
+            self.icons_output_dir
+                .unwrap_or_else(|| "icons".into()),
+        );
         let resources_output_dir = base_output_dir.join(
             self.resources_output_dir
                 .unwrap_or_else(|| "resources".into()),
@@ -56,6 +63,7 @@ impl PackingProcessBuilder {
         PackingProcess {
             app: self.app,
             base_output_dir,
+            icons_output_dir,
             resources_output_dir,
             environment: self
                 .target_environment
@@ -67,6 +75,7 @@ impl PackingProcessBuilder {
 pub struct PackingProcess {
     pub app: App,
     base_output_dir: PathBuf,
+    icons_output_dir: PathBuf,
     resources_output_dir: PathBuf,
     environment: Environment,
 }
@@ -74,6 +83,7 @@ pub struct PackingProcess {
 impl PackingProcess {
     pub fn proceed(self) -> Result<()> {
         fs::create_dir_all(&self.resources_output_dir)?;
+        fs::create_dir_all(&self.icons_output_dir)?;
 
         self.pack_asar()?;
         self.pack_extra(self.app.config().extra_files(), &self.base_output_dir)?;
@@ -83,6 +93,7 @@ impl PackingProcess {
         )?;
 
         self.generate_desktop_file()?;
+        self.generate_icons()?;
 
         Ok(())
     }
@@ -141,5 +152,9 @@ impl PackingProcess {
         }
 
         Ok(())
+    }
+
+    fn generate_icons(&self) -> Result<()> {
+        IconGenerator::new().generate(self.app.icon_locations(), &self.icons_output_dir)
     }
 }

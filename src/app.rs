@@ -107,6 +107,14 @@ impl<'a> App {
                 ))
             })
     }
+
+    pub(crate) fn icon_locations(&'a self) -> Vec<PathBuf> {
+        self.config
+            .icon_locations()
+            .into_iter()
+            .map(|p| self.root.join(p))
+            .collect()
+    }
 }
 
 #[cfg(test)]

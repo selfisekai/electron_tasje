@@ -129,6 +129,7 @@ pub(crate) struct EBuilderBaseConfig {
 
     #[serde(default)]
     directories: EBDirectories,
+    icon: Option<String>,
 
     #[serde(default)]
     protocols: MightBeSingle<ProtocolAssociation>,
@@ -152,6 +153,12 @@ pub struct EBuilderConfig {
 
     #[serde(default)]
     linux: EBuilderBaseConfig,
+
+    #[serde(default)]
+    mac: EBuilderBaseConfig,
+
+    #[serde(default)]
+    win: EBuilderBaseConfig,
 }
 
 impl<'a> EBuilderConfig {
@@ -223,6 +230,24 @@ impl<'a> EBuilderConfig {
     /// https://specifications.freedesktop.org/menu-spec/latest/apa.html#main-category-registry
     pub fn desktop_categories(&'a self) -> Vec<&'a str> {
         self.current_platform().category.as_vec_str()
+    }
+
+    pub(crate) fn icon_locations(&'a self) -> Vec<&'a str> {
+        [
+            self.linux.icon.as_deref(),
+            self.mac
+                .icon
+                .as_deref()
+                .or(Some("build/icon.icns")),
+            self.win
+                .icon
+                .as_deref()
+                .or(Some("build/icon.ico")),
+            self.base.icon.as_deref(),
+        ]
+        .into_iter()
+        .filter_map(|i| i)
+        .collect()
     }
 }
 

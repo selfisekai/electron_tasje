@@ -1,8 +1,7 @@
+use crate::config::{CommonOverridableProperties, EBuilderConfig};
 use anyhow::Error;
 use serde::Deserialize;
 use serde_json::Value;
-
-use crate::config::{CommonOverridableProperties, EBuilderConfig};
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]

@@ -1,12 +1,11 @@
+use anyhow::{Context, Result};
+use once_cell::sync::Lazy;
+use regex::Regex;
 use std::collections::HashSet;
 use std::ffi::OsStr;
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-
-use anyhow::{Context, Result};
-use once_cell::sync::Lazy;
-use regex::Regex;
 
 static PNG_SIZE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r#"^(\d+)x(\d+)\.png$"#).unwrap());
 
@@ -181,7 +180,6 @@ impl IconGenerator {
 mod tests {
     use super::IconGenerator;
     use crate::app::App;
-
     use anyhow::Result;
     use std::fs::{create_dir_all, read_to_string};
     use std::path::Path;

@@ -1,15 +1,14 @@
-use anyhow::Result;
-use asar::AsarWriter;
-use once_cell::sync::Lazy;
-use std::fs::{self, read, File};
-use std::path::{Path, PathBuf};
-
 use crate::app::App;
 use crate::config::CopyDef;
 use crate::desktop::DesktopGenerator;
 use crate::environment::{Environment, Platform, HOST_ENVIRONMENT};
 use crate::icons::IconGenerator;
 use crate::walker::Walker;
+use anyhow::Result;
+use asar::AsarWriter;
+use once_cell::sync::Lazy;
+use std::fs::{self, read, File};
+use std::path::{Path, PathBuf};
 
 static ROOT: Lazy<PathBuf> = Lazy::new(|| PathBuf::from("/"));
 

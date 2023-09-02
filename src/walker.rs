@@ -1,12 +1,11 @@
+use crate::config::{CopyDef, FileSet};
+use crate::environment::Environment;
+use crate::utils::fill_variable_template;
 use anyhow::Result;
 use globreeks::Globreeks;
 use std::path::{Path, PathBuf};
 use std::vec::IntoIter;
 use walkdir::WalkDir;
-
-use crate::config::{CopyDef, FileSet};
-use crate::environment::Environment;
-use crate::utils::fill_variable_template;
 
 #[derive(Debug)]
 pub(crate) struct Walker<'a> {
@@ -125,13 +124,11 @@ impl<'a> Iterator for Walker<'a> {
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
-    use std::path::PathBuf;
-
+    use super::Walker;
     use crate::app::App;
     use crate::environment::HOST_ENVIRONMENT;
-
-    use super::Walker;
+    use anyhow::Result;
+    use std::path::PathBuf;
 
     #[test]
     fn test_walking() -> Result<()> {

@@ -1,12 +1,10 @@
-use std::fs;
-use std::path::{Path, PathBuf};
-
-use anyhow::{anyhow, Result};
-use serde_json::Value;
-
 use crate::config::EBuilderConfig;
 use crate::package::Package;
 use crate::utils::filesafe_package_name;
+use anyhow::{anyhow, Result};
+use serde_json::Value;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
 pub struct App {
@@ -119,9 +117,8 @@ impl<'a> App {
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
-
     use super::App;
+    use anyhow::Result;
 
     #[test]
     fn test_parse() -> Result<()> {

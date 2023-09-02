@@ -1,10 +1,8 @@
-use std::env;
-
+use crate::environment::Environment;
 use anyhow::{bail, Context, Result};
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
-
-use crate::environment::Environment;
+use std::env;
 
 static TEMPLATE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r#"\$\{([a-zA-Z_. ]+)\}"#).unwrap());
 

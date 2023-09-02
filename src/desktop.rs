@@ -1,6 +1,5 @@
-use anyhow::Result;
-
 use crate::app::App;
+use anyhow::Result;
 
 pub struct DesktopGenerator {
     entries: Vec<(String, String)>,

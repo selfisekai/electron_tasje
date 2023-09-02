@@ -253,12 +253,10 @@ impl<'a> EBuilderConfig {
 
 #[cfg(test)]
 mod tests {
+    use super::EBuilderConfig;
+    use crate::config::{CopyDef, FileSet, MightBeSingle};
     use anyhow::Result;
     use serde_json::json;
-
-    use crate::config::{CopyDef, FileSet, MightBeSingle};
-
-    use super::EBuilderConfig;
 
     #[test]
     fn test_parse_empty() -> Result<()> {

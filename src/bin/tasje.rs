@@ -1,10 +1,8 @@
-use std::env::current_dir;
-
 use anyhow::Result;
 use clap::Parser;
-
 use electron_tasje::app::App;
 use electron_tasje::pack::PackingProcessBuilder;
+use std::env::current_dir;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]

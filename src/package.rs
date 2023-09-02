@@ -1,5 +1,4 @@
 use crate::config::{CommonOverridableProperties, EBuilderConfig};
-use anyhow::Error;
 use serde::Deserialize;
 use serde_json::Value;
 
@@ -20,7 +19,7 @@ pub struct Package {
 }
 
 impl TryFrom<Value> for Package {
-    type Error = Error;
+    type Error = serde_json::Error;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         let manifest = serde_json::from_value(value.clone())?;

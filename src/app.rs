@@ -1,10 +1,30 @@
 use crate::config::EBuilderConfig;
 use crate::package::Package;
 use crate::utils::filesafe_package_name;
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use serde_json::Value;
+use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum AppParseError {
+    #[error(transparent)]
+    JsonError(#[from] serde_json::Error),
+    #[error(transparent)]
+    YamlError(#[from] serde_yaml::Error),
+    #[error(transparent)]
+    TomlError(#[from] toml::de::Error),
+    #[error(transparent)]
+    Json5Error(#[from] json5::Error),
+    #[error(transparent)]
+    IoError(#[from] std::io::Error),
+    #[error("no file extension in provided config path")]
+    NoConfigFileExtension,
+    #[error("unknown file extension in config path: {0:?}")]
+    UnknownConfigFileExtension(String),
+}
 
 #[derive(Debug, Clone)]
 pub struct App {
@@ -22,26 +42,33 @@ impl App {
         }
     }
 
-    pub fn new_from_package_file<P: AsRef<Path>>(package_file: P) -> Result<App> {
+    /// also looks for electron-builder.yml if there is no "build" in package.json
+    pub fn new_from_package_file<P: AsRef<Path>>(package_file: P) -> Result<App, AppParseError> {
         let package_file = package_file.as_ref();
         let package = Package::try_from(serde_json::from_str::<Value>(&fs::read_to_string(
             package_file,
         )?)?)?;
-        let config = serde_json::from_value(
-            package
-                .value
-                .get("build")
-                .ok_or_else(|| anyhow!("no build config in package"))?
-                .clone(),
-        )?;
+        let root = package_file.parent().unwrap();
+        let config = package
+            .value
+            .get("build")
+            .filter(|b| b.is_object())
+            .map(|b| -> Result<EBuilderConfig, AppParseError> {
+                Ok(serde_json::from_value(b.clone())?)
+            })
+            .unwrap_or_else(|| -> Result<EBuilderConfig, AppParseError> {
+                Ok(serde_yaml::from_reader(fs::File::open(
+                    root.join("electron-builder.yml"),
+                )?)?)
+            })?;
         Ok(App {
             package,
             config,
-            root: package_file.parent().unwrap().to_path_buf(),
+            root: root.to_path_buf(),
         })
     }
 
-    pub fn new_from_files<P1, P2>(package_file: P1, config_file: P2) -> Result<App>
+    pub fn new_from_files<P1, P2>(package_file: P1, config_file: P2) -> Result<App, AppParseError>
     where
         P1: AsRef<Path>,
         P2: AsRef<Path>,
@@ -50,8 +77,23 @@ impl App {
         let package = Package::try_from(serde_json::from_str::<Value>(&fs::read_to_string(
             package_file,
         )?)?)?;
-        // TODO: handle all the other formats
-        let config = serde_json::from_str(&fs::read_to_string(config_file.as_ref())?)?;
+        let config = match config_file
+            .as_ref()
+            .extension()
+            .map(OsStr::to_str)
+            .flatten()
+            .ok_or(AppParseError::NoConfigFileExtension)?
+        {
+            "json" => serde_json::from_str(&fs::read_to_string(config_file.as_ref())?)?,
+            "yaml" | "yml" => serde_yaml::from_str(&fs::read_to_string(config_file.as_ref())?)?,
+            "toml" => toml::from_str(&fs::read_to_string(config_file.as_ref())?)?,
+            "json5" => json5::from_str(&fs::read_to_string(config_file.as_ref())?)?,
+            unknown => {
+                return Err(AppParseError::UnknownConfigFileExtension(
+                    unknown.to_string(),
+                ))
+            }
+        };
         Ok(App {
             package,
             config,

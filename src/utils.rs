@@ -53,7 +53,7 @@ pub(crate) fn fill_variable_template<S: AsRef<str>>(
                 v => {
                     if let Some(envar) = v.strip_prefix("env.") {
                         env::var(envar)
-                            .with_context(|| format!("failed to get an env variable: {:?}", envar))
+                            .with_context(|| format!("failed to get the env variable: {:?}", envar))
                     } else {
                         bail!("unknown template variable: '{variable}'")
                     }
@@ -76,8 +76,28 @@ pub fn filesafe_package_name(name: &str) -> Result<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::filesafe_package_name;
+    use super::{filesafe_package_name, fill_variable_template};
+    use crate::environment::Environment;
     use anyhow::Result;
+
+    #[test]
+    fn test_variable_templates() -> Result<()> {
+        let env = Environment {
+            architecture: crate::environment::Architecture::Aarch64,
+            platform: crate::environment::Platform::Linux,
+        };
+        assert_eq!(fill_variable_template("tasje", env)?, "tasje");
+        assert_eq!(
+            fill_variable_template("tasje-${arch}-${platform}", env)?,
+            "tasje-arm64-linux"
+        );
+        assert_eq!(
+            fill_variable_template("_${env.CARGO_PKG_NAME}_", env)?,
+            "_electron_tasje_"
+        );
+
+        Ok(())
+    }
 
     #[test]
     fn test_filesafe_name() -> Result<()> {

@@ -6,28 +6,61 @@ use std::env;
 
 static TEMPLATE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r#"\$\{([a-zA-Z_. ]+)\}"#).unwrap());
 
+pub(crate) fn try_flatten<S, T>(iter: S) -> Result<Vec<T>>
+where
+    S: Iterator<Item = Result<T>>,
+{
+    let mut unwrapped = Vec::new();
+    for item in iter {
+        match item {
+            Ok(i) => unwrapped.push(i),
+            Err(e) => return Err(e),
+        }
+    }
+    Ok(unwrapped)
+}
+
+/// from regex crate docs
+fn replace_all<E>(
+    re: &Regex,
+    haystack: &str,
+    replacement: impl Fn(&Captures) -> Result<String, E>,
+) -> Result<String, E> {
+    let mut new = String::with_capacity(haystack.len());
+    let mut last_match = 0;
+    for caps in re.captures_iter(haystack) {
+        let m = caps.get(0).unwrap();
+        new.push_str(&haystack[last_match..m.start()]);
+        new.push_str(&replacement(&caps)?);
+        last_match = m.end();
+    }
+    new.push_str(&haystack[last_match..]);
+    Ok(new)
+}
+
 pub(crate) fn fill_variable_template<S: AsRef<str>>(
     template: S,
     environment: Environment,
-) -> String {
-    TEMPLATE_REGEX
-        .replace_all(template.as_ref(), |captures: &Captures| -> String {
+) -> Result<String> {
+    replace_all(
+        &TEMPLATE_REGEX,
+        template.as_ref(),
+        |captures: &Captures| -> Result<String> {
             let variable = captures.get(1).unwrap().as_str().trim();
             match variable {
-                "arch" => environment.architecture.to_node().to_string(),
-                "platform" => environment.platform.to_node().to_string(),
+                "arch" => Ok(environment.architecture.to_node().to_string()),
+                "platform" => Ok(environment.platform.to_node().to_string()),
                 v => {
                     if let Some(envar) = v.strip_prefix("env.") {
                         env::var(envar)
-                            .with_context(|| format!("variable name: {:?}", envar))
-                            .expect("getting env variable contents")
+                            .with_context(|| format!("failed to get an env variable: {:?}", envar))
                     } else {
-                        unimplemented!("unknown template variable: '{variable}'")
+                        bail!("unknown template variable: '{variable}'")
                     }
                 }
             }
-        })
-        .to_string()
+        },
+    )
 }
 
 pub fn filesafe_package_name(name: &str) -> Result<String> {

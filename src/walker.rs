@@ -1,6 +1,6 @@
 use crate::config::{CopyDef, FileSet};
 use crate::environment::Environment;
-use crate::utils::fill_variable_template;
+use crate::utils::{fill_variable_template, try_flatten};
 use anyhow::Result;
 use globreeks::Globreeks;
 use std::path::{Path, PathBuf};
@@ -10,9 +10,8 @@ use walkdir::WalkDir;
 #[derive(Debug)]
 pub(crate) struct Walker<'a> {
     root: PathBuf,
-    environment: Environment,
     globs: Globreeks,
-    sets: IntoIter<&'a FileSet>,
+    sets: IntoIter<(&'a FileSet, Vec<String>)>,
     current_set: Option<&'a FileSet>,
     current_walk: walkdir::IntoIter,
     done_with_globs: bool,
@@ -37,13 +36,22 @@ impl<'a> Walker<'a> {
 
         Ok(Self {
             root: root.clone(),
-            environment,
-            globs: Globreeks::new(
+            globs: Globreeks::new(try_flatten(
                 globs
                     .iter()
                     .map(|f| fill_variable_template(f, environment)),
-            )?,
-            sets: sets.into_iter(),
+            )?)?,
+            sets: try_flatten(sets.into_iter().map(|s| {
+                Ok((
+                    s,
+                    try_flatten(
+                        s.filters()
+                            .into_iter()
+                            .map(|f| fill_variable_template(f, environment)),
+                    )?,
+                ))
+            }))?
+            .into_iter(),
             current_set: None,
             current_walk: WalkDir::new(root).follow_links(true).into_iter(),
             done_with_globs: globs.is_empty(),
@@ -99,21 +107,19 @@ impl<'a> Iterator for Walker<'a> {
                     ));
                 }
             }
-            self.current_set = self.sets.next();
-            if let Some(current_set) = self.current_set {
-                self.current_walk = WalkDir::new(self.root.join(current_set.from()))
+            if let Some((new_set, new_globs)) = self.sets.next() {
+                self.current_set = Some(new_set);
+                self.current_walk = WalkDir::new(self.root.join(new_set.from()))
                     .follow_links(true)
                     .into_iter();
-                let mut filters = current_set.filters();
+                let mut filters = new_globs;
                 if !filters.iter().any(|f| !f.starts_with('!')) {
-                    let mut new_filters = vec!["**/*"];
+                    let mut new_filters = vec!["**/*".to_string()];
                     new_filters.extend(filters);
                     filters = new_filters;
                 }
-                let filters = filters
-                    .into_iter()
-                    .map(|f| fill_variable_template(f, self.environment));
-                self.globs = Globreeks::new(filters).unwrap();
+                self.globs =
+                    Globreeks::new(filters.into_iter().by_ref().collect::<Vec<_>>()).unwrap();
             } else {
                 return None;
             }

@@ -19,6 +19,9 @@ pub struct PackingProcessBuilder {
     icons_output_dir: Option<PathBuf>,
     resources_output_dir: Option<PathBuf>,
     target_environment: Option<Environment>,
+    additional_files: Vec<CopyDef>,
+    additional_asar_unpack: Vec<String>,
+    additional_extra_resources: Vec<CopyDef>,
 }
 
 impl PackingProcessBuilder {
@@ -29,6 +32,9 @@ impl PackingProcessBuilder {
             icons_output_dir: None,
             resources_output_dir: None,
             target_environment: None,
+            additional_files: Vec::new(),
+            additional_asar_unpack: Vec::new(),
+            additional_extra_resources: Vec::new(),
         }
     }
 
@@ -42,6 +48,21 @@ impl PackingProcessBuilder {
 
     pub fn target_environment(mut self, env: Environment) -> Self {
         self.target_environment = Some(env);
+        self
+    }
+
+    pub fn additional_files(mut self, add: Vec<CopyDef>) -> Self {
+        self.additional_files.extend(add);
+        self
+    }
+
+    pub fn additional_asar_unpack(mut self, add: Vec<String>) -> Self {
+        self.additional_asar_unpack.extend(add);
+        self
+    }
+
+    pub fn additional_extra_resources(mut self, add: Vec<CopyDef>) -> Self {
+        self.additional_extra_resources.extend(add);
         self
     }
 
@@ -67,6 +88,9 @@ impl PackingProcessBuilder {
             environment: self
                 .target_environment
                 .unwrap_or(HOST_ENVIRONMENT),
+            additional_files: self.additional_files,
+            additional_asar_unpack: self.additional_asar_unpack,
+            additional_extra_resources: self.additional_extra_resources,
         }
     }
 }
@@ -77,6 +101,9 @@ pub struct PackingProcess {
     icons_output_dir: PathBuf,
     resources_output_dir: PathBuf,
     environment: Environment,
+    additional_files: Vec<CopyDef>,
+    additional_asar_unpack: Vec<String>,
+    additional_extra_resources: Vec<CopyDef>,
 }
 
 impl PackingProcess {
@@ -103,12 +130,24 @@ impl PackingProcess {
         let unpack_dir = self
             .resources_output_dir
             .join("app.asar.unpacked");
-        for (source, dest, unpack) in Walker::new(
-            self.app.root.clone(),
-            self.environment,
-            self.app.config().files(),
-            Some(self.app.config().asar_unpack()).filter(|a| !a.is_empty()),
-        )? {
+        let mut files = self.app.config().files();
+        files.extend(self.additional_files.as_slice());
+        let unpack_list = Some(
+            self.app
+                .config()
+                .asar_unpack()
+                .into_iter()
+                .chain(
+                    self.additional_asar_unpack
+                        .iter()
+                        .map(String::as_str),
+                )
+                .collect::<Vec<_>>(),
+        )
+        .filter(|l| !l.is_empty());
+        for (source, dest, unpack) in
+            Walker::new(self.app.root.clone(), self.environment, files, unpack_list)?
+        {
             asar.write_file(ROOT.join(&dest), read(&source)?, true)?;
             if unpack {
                 let unpack_dest = unpack_dir.join(dest);
@@ -125,6 +164,10 @@ impl PackingProcess {
     where
         P: AsRef<Path>,
     {
+        let copydefs = copydefs
+            .into_iter()
+            .chain(self.additional_extra_resources.iter().by_ref())
+            .collect::<Vec<_>>();
         if copydefs.is_empty() {
             // nothing to copy, don't bother looking
             return Ok(());

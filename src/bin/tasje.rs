@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use electron_tasje::app::App;
+use electron_tasje::config::CopyDef;
 use electron_tasje::pack::PackingProcessBuilder;
 use std::env::current_dir;
 
@@ -9,9 +10,6 @@ use std::env::current_dir;
 enum Args {
     /// pack the resources
     Pack {
-        #[clap(short, long, value_parser)]
-        verbose: bool,
-
         #[clap(short, long, value_parser)]
         /// directory to put build in, overrides directories.output
         output: Option<String>,
@@ -44,12 +42,11 @@ fn main() -> Result<()> {
 
     match args {
         Pack {
-            verbose: _,
-            output: _,
+            output,
             config,
-            additional_files: _,
-            additional_asar_unpack: _,
-            additional_extra_resources: _,
+            additional_files,
+            additional_asar_unpack,
+            additional_extra_resources,
         } => {
             let root = current_dir()?;
             let package_path = root.join("package.json");
@@ -58,7 +55,24 @@ fn main() -> Result<()> {
             } else {
                 App::new_from_package_file(&package_path)?
             };
-            PackingProcessBuilder::new(app)
+            let mut builder = PackingProcessBuilder::new(app);
+            if let Some(out) = output {
+                builder = builder.base_output_dir(out);
+            }
+            builder
+                .additional_files(
+                    additional_files
+                        .into_iter()
+                        .map(CopyDef::Simple)
+                        .collect(),
+                )
+                .additional_asar_unpack(additional_asar_unpack)
+                .additional_extra_resources(
+                    additional_extra_resources
+                        .into_iter()
+                        .map(CopyDef::Simple)
+                        .collect(),
+                )
                 .build()
                 .proceed()?;
         }

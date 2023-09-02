@@ -6,6 +6,7 @@ use serde_json::Value;
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -20,10 +21,14 @@ pub enum AppParseError {
     Json5Error(#[from] json5::Error),
     #[error(transparent)]
     IoError(#[from] std::io::Error),
+    #[error("package.json holds no ebuilder config under `build` key. reading electron-builder.yml as fallback failed too: {0}")]
+    ConfigFallbackError(std::io::Error),
     #[error("no file extension in provided config path")]
     NoConfigFileExtension,
     #[error("unknown file extension in config path: {0:?}")]
     UnknownConfigFileExtension(String),
+    #[error("node process for executing config exited unsuccessfully")]
+    NodeProcessError { status_code: Option<i32> },
 }
 
 #[derive(Debug, Clone)]
@@ -57,9 +62,10 @@ impl App {
                 Ok(serde_json::from_value(b.clone())?)
             })
             .unwrap_or_else(|| -> Result<EBuilderConfig, AppParseError> {
-                Ok(serde_yaml::from_reader(fs::File::open(
-                    root.join("electron-builder.yml"),
-                )?)?)
+                Ok(serde_yaml::from_reader(
+                    fs::File::open(root.join("electron-builder.yml"))
+                        .map_err(AppParseError::ConfigFallbackError)?,
+                )?)
             })?;
         Ok(App {
             package,
@@ -88,6 +94,28 @@ impl App {
             "yaml" | "yml" => serde_yaml::from_str(&fs::read_to_string(config_file.as_ref())?)?,
             "toml" => toml::from_str(&fs::read_to_string(config_file.as_ref())?)?,
             "json5" => json5::from_str(&fs::read_to_string(config_file.as_ref())?)?,
+            // runs node.js to import the file and serialize it to json, then parses the json output
+            "js" => serde_json::from_slice(
+                &Command::new(std::env::var("NODE").unwrap_or_else(|_| "node".to_string()))
+                    .arg("-p")
+                    .arg(format!(
+                        "JSON.stringify(require({}))",
+                        serde_json::to_string(&config_file.as_ref().canonicalize()?)?
+                    ))
+                    // to allow using electron binaries
+                    .env("ELECTRON_RUN_AS_NODE", "1")
+                    .output()
+                    .map(|out| {
+                        if out.status.code().is_some_and(|c| c == 0) {
+                            Ok(out)
+                        } else {
+                            Err(AppParseError::NodeProcessError {
+                                status_code: out.status.code(),
+                            })
+                        }
+                    })??
+                    .stdout,
+            )?,
             unknown => {
                 return Err(AppParseError::UnknownConfigFileExtension(
                     unknown.to_string(),

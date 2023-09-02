@@ -6,14 +6,26 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct FileSet {
-    pub from: String,
+    from: String,
     #[serde(default)]
-    pub to: Option<String>,
+    to: Option<String>,
     #[serde(default)]
     pub(crate) filter: MightBeSingle<String>,
 }
 
 impl<'a> FileSet {
+    pub fn from(&'a self) -> &'a str {
+        self.from.strip_prefix("./").unwrap_or(&self.from)
+    }
+
+    pub fn to(&'a self) -> Option<&'a str> {
+        self.to
+            .as_ref()
+            .map(|to| to.strip_prefix("./"))
+            .flatten()
+            .or_else(|| self.to.as_deref())
+    }
+
     pub fn filters(&'a self) -> Vec<&'a str> {
         self.filter.as_vec_str()
     }

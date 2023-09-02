@@ -92,9 +92,8 @@ impl<'a> Iterator for Walker<'a> {
                 if let Some((path, unpack)) = self.next_current_walk() {
                     return Some((
                         self.root.join(&path),
-                        set.to
-                            .as_ref()
-                            .map(|to| Path::new(&to).join(&path.strip_prefix(&set.from).unwrap()))
+                        set.to()
+                            .map(|to| Path::new(&to).join(&path.strip_prefix(&set.from()).unwrap()))
                             .unwrap_or(path),
                         unpack,
                     ));
@@ -102,7 +101,7 @@ impl<'a> Iterator for Walker<'a> {
             }
             self.current_set = self.sets.next();
             if let Some(current_set) = self.current_set {
-                self.current_walk = WalkDir::new(self.root.join(&current_set.from))
+                self.current_walk = WalkDir::new(self.root.join(current_set.from()))
                     .follow_links(true)
                     .into_iter();
                 let mut filters = current_set.filters();

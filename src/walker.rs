@@ -101,7 +101,13 @@ impl<'a> Iterator for Walker<'a> {
                     return Some((
                         self.root.join(&path),
                         set.to()
-                            .map(|to| Path::new(&to).join(&path.strip_prefix(&set.from()).unwrap()))
+                            .map(|to| {
+                                Path::new(&to).join(
+                                    &path
+                                        .strip_prefix(set.from().unwrap_or_default())
+                                        .unwrap(),
+                                )
+                            })
                             .unwrap_or(path),
                         unpack,
                     ));
@@ -109,9 +115,10 @@ impl<'a> Iterator for Walker<'a> {
             }
             if let Some((new_set, new_globs)) = self.sets.next() {
                 self.current_set = Some(new_set);
-                self.current_walk = WalkDir::new(self.root.join(new_set.from()))
-                    .follow_links(true)
-                    .into_iter();
+                self.current_walk =
+                    WalkDir::new(self.root.join(new_set.from().unwrap_or_default()))
+                        .follow_links(true)
+                        .into_iter();
                 let mut filters = new_globs;
                 if !filters.iter().any(|f| !f.starts_with('!')) {
                     let mut new_filters = vec!["**/*".to_string()];

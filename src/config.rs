@@ -6,7 +6,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct FileSet {
-    from: String,
+    from: Option<String>,
     #[serde(default)]
     to: Option<String>,
     #[serde(default)]
@@ -14,8 +14,11 @@ pub struct FileSet {
 }
 
 impl<'a> FileSet {
-    pub fn from(&'a self) -> &'a str {
-        self.from.strip_prefix("./").unwrap_or(&self.from)
+    pub fn from(&'a self) -> Option<&'a str> {
+        self.from
+            .as_ref()
+            .map(|f| f.strip_prefix("./"))
+            .unwrap_or_else(|| self.from.as_deref())
     }
 
     pub fn to(&'a self) -> Option<&'a str> {
@@ -296,7 +299,7 @@ mod tests {
         assert_eq!(
             bc.extra_resources(),
             vec![&CopyDef::Set(FileSet {
-                from: "dir".to_owned(),
+                from: Some("dir".to_owned()),
                 to: None,
                 filter: MightBeSingle::None,
             })]
@@ -316,6 +319,8 @@ mod tests {
                 "from": "hx",
                 "to": "mz",
                 "filter": ["**/*", "!foo/*.js"],
+            }, {
+                "filter": ["LICENSE.txt"],
             }],
         }))?;
         assert_eq!(
@@ -330,20 +335,25 @@ mod tests {
             bc.extra_resources(),
             vec![
                 &CopyDef::Set(FileSet {
-                    from: "source".to_owned(),
+                    from: Some("source".to_owned()),
                     to: None,
                     filter: MightBeSingle::One("*".to_owned()),
                 }),
                 &CopyDef::Simple("dir1".to_owned()),
                 &CopyDef::Simple("dir2".to_owned()),
                 &CopyDef::Set(FileSet {
-                    from: "hx".to_owned(),
+                    from: Some("hx".to_owned()),
                     to: Some("mz".to_owned()),
                     filter: MightBeSingle::Multiple(vec![
                         "**/*".to_owned(),
-                        "!foo/*.js".to_owned()
+                        "!foo/*.js".to_owned(),
                     ]),
-                })
+                }),
+                &CopyDef::Set(FileSet {
+                    from: None,
+                    to: None,
+                    filter: MightBeSingle::Multiple(vec!["LICENSE.txt".to_owned()]),
+                }),
             ],
         );
         Ok(())

@@ -18,7 +18,8 @@ impl<'a> FileSet {
         self.from
             .as_ref()
             .map(|f| f.strip_prefix("./"))
-            .unwrap_or_else(|| self.from.as_deref())
+            .flatten()
+            .or_else(|| self.from.as_deref())
     }
 
     pub fn to(&'a self) -> Option<&'a str> {

@@ -12,6 +12,29 @@ use std::path::{Path, PathBuf};
 
 static ROOT: Lazy<PathBuf> = Lazy::new(|| PathBuf::from("/"));
 
+static NODE_MODULES_GLOB: Lazy<CopyDef> =
+    Lazy::new(|| CopyDef::Simple("node_modules/**/*".to_string()));
+
+static FORCED_FILTERS: Lazy<Vec<CopyDef>> = Lazy::new(|| {
+    [
+        "!**/node_modules/.bin",
+        "!**/*.{md,rst,markdown}",
+        "!**/{__tests__,powered-test,spec,example,examples,readme,README,Readme,changelog,CHANGELOG,Changelog,ChangeLog}",
+        "!**/*.{spec,test}.*",
+        "!**/._*",
+        "!**/{.editorconfig,.DS_Store,.git,.svn,.hg,CVS,RCS,.gitattributes,.nvmrc,.nycrc,Makefile,CMakeLists.txt}",
+        "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.vscode,.nyc_output,.docker-compose.yml}",
+        "!**/{.github,.gitlab,.gitlab-ci.yml,appveyor.yml,.travis.yml,circle.yml,.woodpecker.yml}",
+        "!**/{package-lock.json,yarn.lock}",
+        "!**/.{git,eslint,tslint,prettier,docker,npm,yarn}ignore",
+        "!**/.{prettier,eslint,jshint,jsdoc}rc",
+        "!**/{.prettierrc,webpack.config,.jshintrc,jsdoc,.eslintrc,tsconfig}{,.json,.js,.yml,yaml}",
+        "!**/{yarn,npm}-{debug,error}{,.log,.json}",
+        "!**/.{yarn,npm}-{metadata,integrity}",
+        "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj,c,h,cc,cpp,hpp,lzz,gyp,d.ts}",
+    ].into_iter().map(str::to_string).map(CopyDef::Simple).collect()
+});
+
 #[derive(Clone, Debug)]
 pub struct PackingProcessBuilder {
     app: App,
@@ -131,8 +154,10 @@ impl PackingProcess {
         let unpack_dir = self
             .resources_output_dir
             .join("app.asar.unpacked");
-        let mut files = self.app.config().files();
+        let mut files: Vec<&CopyDef> = vec![&NODE_MODULES_GLOB];
+        files.extend(self.app.config().files());
         files.extend(self.additional_files.as_slice());
+        files.extend(FORCED_FILTERS.as_slice());
         let unpack_list = Some(
             self.app
                 .config()

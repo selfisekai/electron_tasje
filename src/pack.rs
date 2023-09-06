@@ -70,6 +70,7 @@ impl PackingProcessBuilder {
         let base_output_dir = self.app.root.clone().join(
             self.base_output_dir
                 .clone()
+                .or_else(|| self.app.config().output_dir().map(|o| o.into()))
                 .unwrap_or_else(|| "tasje_out".into()),
         );
         let icons_output_dir = base_output_dir.join(

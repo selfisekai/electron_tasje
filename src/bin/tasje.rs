@@ -38,8 +38,6 @@ use Args::*;
 fn main() -> Result<()> {
     let args = Args::parse();
 
-    println!("{:#?}", args);
-
     match args {
         Pack {
             output,

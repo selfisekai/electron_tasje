@@ -21,4 +21,4 @@ notable differences:
 
 ## legal
 
-copyright 2022 Lauren N. Liberda, usage allowed under the terms of [Apache-2.0 license](LICENSE)
+copyright 2022 lauren n. liberda, usage allowed under the terms of [Apache-2.0 license](LICENSE-Apache-2.0) or [MIT license](LICENSE-MIT), at your option.

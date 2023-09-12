@@ -7,7 +7,7 @@ use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
-static PNG_SIZE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r#"^(\d+)x(\d+)\.png$"#).unwrap());
+static PNG_SIZE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(\d+)x(\d+)\.png$").unwrap());
 
 pub struct IconGenerator {
     icon_sizes: HashSet<(u64, u64)>,
@@ -139,10 +139,8 @@ impl IconGenerator {
         // this blindly trusts that the sizes in filename are correct
         if let Some((width, height)) = png_path
             .file_name()
-            .map(OsStr::to_str)
-            .flatten()
-            .map(|filename| PNG_SIZE_REGEX.captures(filename))
-            .flatten()
+            .and_then(OsStr::to_str)
+            .and_then(|filename| PNG_SIZE_REGEX.captures(filename))
             .map(|c| -> (u64, u64) {
                 (
                     c.get(1).unwrap().as_str().parse().unwrap(),
@@ -209,9 +207,7 @@ mod tests {
         let app = App::new_from_package_file("test_assets/package-win.json")?;
         IconGenerator::new().generate(app.icon_locations(), icons_dir)?;
         assert_eq!(read_to_string(icons_dir.join("size-list"))?, "32x32");
-        for name in ["32x32.png"] {
-            assert!(icons_dir.join(name).is_file());
-        }
+        assert!(icons_dir.join("32x32.png").is_file());
         Ok(())
     }
 

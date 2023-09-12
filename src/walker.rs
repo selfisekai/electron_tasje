@@ -46,7 +46,7 @@ impl<'a> Walker<'a> {
                     s,
                     try_flatten(
                         s.filters()
-                            .into_iter()
+                            .iter()
                             .map(|f| fill_variable_template(f, environment)),
                     )?,
                 ))
@@ -64,22 +64,20 @@ impl<'a> Walker<'a> {
     }
 
     fn next_current_walk(&mut self) -> Option<(PathBuf, bool)> {
-        while let Some(next) = self.current_walk.next() {
-            if let Ok(direntry) = next {
-                let path = direntry.path().strip_prefix(&self.root).unwrap();
-                let path_cand = globreeks::Candidate::new(path);
-                if self.globs.evaluate_candidate(&path_cand) && direntry.file_type().is_file() {
-                    let unpack = self
-                        .unpack_globs
-                        .as_ref()
-                        .map(|r| r.evaluate_candidate(&path_cand))
-                        .unwrap_or(false);
-                    let buf = path.to_path_buf();
-                    return Some((buf, unpack));
-                }
+        for direntry in self.current_walk.by_ref().flatten() {
+            let path = direntry.path().strip_prefix(&self.root).unwrap();
+            let path_cand = globreeks::Candidate::new(path);
+            if self.globs.evaluate_candidate(&path_cand) && direntry.file_type().is_file() {
+                let unpack = self
+                    .unpack_globs
+                    .as_ref()
+                    .map(|r| r.evaluate_candidate(&path_cand))
+                    .unwrap_or(false);
+                let buf = path.to_path_buf();
+                return Some((buf, unpack));
             }
         }
-        return None;
+        None
     }
 }
 
@@ -103,8 +101,7 @@ impl<'a> Iterator for Walker<'a> {
                         set.to()
                             .map(|to| {
                                 Path::new(&to).join(
-                                    &path
-                                        .strip_prefix(set.from().unwrap_or_default())
+                                    path.strip_prefix(set.from().unwrap_or_default())
                                         .unwrap(),
                                 )
                             })

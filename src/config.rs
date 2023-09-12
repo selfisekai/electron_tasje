@@ -15,21 +15,19 @@ pub struct FileSet {
     pub(crate) filter: Vec<String>,
 }
 
-impl<'a> FileSet {
+impl FileSet {
     pub fn from(&self) -> Option<&str> {
         self.from
             .as_ref()
-            .map(|f| f.strip_prefix("./"))
-            .flatten()
-            .or_else(|| self.from.as_deref())
+            .and_then(|f| f.strip_prefix("./"))
+            .or(self.from.as_deref())
     }
 
     pub fn to(&self) -> Option<&str> {
         self.to
             .as_ref()
-            .map(|to| to.strip_prefix("./"))
-            .flatten()
-            .or_else(|| self.to.as_deref())
+            .and_then(|to| to.strip_prefix("./"))
+            .or(self.to.as_deref())
     }
 
     pub fn filters(&self) -> &[String] {
@@ -216,7 +214,7 @@ impl<'a> EBuilderConfig {
         self.current_platform(platform)
             .desktop
             .as_ref()
-            .or_else(|| self.base.desktop.as_ref())
+            .or(self.base.desktop.as_ref())
             .map(|m| m.clone().into_iter().collect())
     }
 
@@ -225,7 +223,7 @@ impl<'a> EBuilderConfig {
             .directories
             .output
             .as_deref()
-            .or_else(|| self.base.directories.output.as_deref())
+            .or(self.base.directories.output.as_deref())
     }
 
     pub fn protocol_associations(&'a self, platform: Platform) -> &[ProtocolAssociation] {
@@ -265,7 +263,7 @@ impl<'a> EBuilderConfig {
             self.base.icon.as_deref(),
         ]
         .into_iter()
-        .filter_map(|i| i)
+        .flatten()
         .collect()
     }
 }

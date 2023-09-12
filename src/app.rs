@@ -88,8 +88,7 @@ impl App {
         let config = match config_file
             .as_ref()
             .extension()
-            .map(OsStr::to_str)
-            .flatten()
+            .and_then(OsStr::to_str)
             .ok_or(AppParseError::NoConfigFileExtension)?
         {
             "json" => serde_json::from_str(&fs::read_to_string(config_file.as_ref())?)?,
@@ -131,7 +130,7 @@ impl App {
         })
     }
 
-    pub fn config<'a>(&'a self) -> &'a EBuilderConfig {
+    pub fn config(&self) -> &EBuilderConfig {
         &self.config
     }
 }

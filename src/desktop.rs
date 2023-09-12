@@ -7,6 +7,7 @@ pub struct DesktopGenerator {
 }
 
 impl DesktopGenerator {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             entries: Vec::new(),

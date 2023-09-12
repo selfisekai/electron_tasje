@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use std::env;
 
-static TEMPLATE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r#"\$\{([a-zA-Z_. ]+)\}"#).unwrap());
+static TEMPLATE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"\$\{([a-zA-Z_. ]+)\}").unwrap());
 
 pub(crate) fn try_flatten<S, T>(iter: S) -> Result<Vec<T>>
 where

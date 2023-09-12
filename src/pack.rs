@@ -89,7 +89,7 @@ impl PackingProcessBuilder {
         self
     }
 
-    pub fn build<'a>(self) -> PackingProcess {
+    pub fn build(self) -> PackingProcess {
         let environment = self
             .target_environment
             .unwrap_or(HOST_ENVIRONMENT);
@@ -175,7 +175,7 @@ impl PackingProcess {
             self.app
                 .config()
                 .asar_unpack(self.environment.platform)
-                .into_iter()
+                .iter()
                 .chain(self.additional_asar_unpack.iter())
                 .collect::<Vec<_>>(),
         )
@@ -200,7 +200,7 @@ impl PackingProcess {
         P: AsRef<Path>,
     {
         let copydefs = copydefs
-            .into_iter()
+            .iter()
             .chain(self.additional_extra_resources.iter().by_ref())
             .collect::<Vec<_>>();
         if copydefs.is_empty() {

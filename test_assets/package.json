@@ -3,6 +3,9 @@
     "description": "Packs Electron apps",
     "version": "2.1.3.7-jp2",
     "build": {
+        "extraMetadata": {
+            "name": "fake_electron_tasje"
+        },
         "files": [
             "build/bundle.aoeuid.js",
             {

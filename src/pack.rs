@@ -180,9 +180,22 @@ impl PackingProcess {
                 .collect::<Vec<_>>(),
         )
         .filter(|l| !l.is_empty());
+
+        // adding package.json separately, to handle extraMetadata
+        asar.write_file(
+            "/package.json",
+            self.app
+                .patched_package(self.environment.platform)?,
+            false,
+        )?;
+
         for (source, dest, unpack) in
             Walker::new(self.app.root.clone(), self.environment, files, unpack_list)?
         {
+            // always packing package.json above
+            if dest == Path::new("package.json") {
+                continue;
+            }
             asar.write_file(ROOT.join(&dest), read(&source)?, true)?;
             if unpack {
                 let unpack_dest = unpack_dir.join(dest);

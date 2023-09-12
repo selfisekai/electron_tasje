@@ -185,12 +185,29 @@ impl<'a> App {
             .map(|p| self.root.join(p))
             .collect()
     }
+
+    pub fn patched_package(&'a self, platform: Platform) -> Result<Vec<u8>> {
+        let mut value = self.package.value.clone();
+        let package = value.as_object_mut().unwrap();
+        if let Some(extra_metadata) = self
+            .config
+            .extra_metadata(platform)
+            .map(|m| m.as_object().cloned())
+            .flatten()
+        {
+            for (k, v) in extra_metadata.into_iter() {
+                package.insert(k, v);
+            }
+        }
+        Ok(serde_json::to_vec(package)?)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::App;
     use crate::environment::Platform;
+    use crate::package::PackageManifest;
     use anyhow::Result;
 
     static LINUX: Platform = Platform::Linux;
@@ -205,6 +222,16 @@ mod tests {
         assert_eq!(app.executable_name(LINUX)?, "tasje");
         assert_eq!(app.product_name(LINUX), "Tasje");
         assert_eq!(app.desktop_name(LINUX)?, "electron_tasje.desktop");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_patched_package() -> Result<()> {
+        let app = App::new_from_package_file("test_assets/package.json")?;
+
+        let patched = serde_json::from_slice::<PackageManifest>(&app.patched_package(LINUX)?)?;
+        assert_eq!(patched.name, "fake_electron_tasje");
 
         Ok(())
     }

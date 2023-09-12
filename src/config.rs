@@ -138,6 +138,9 @@ pub(crate) struct EBuilderBaseConfig {
     #[serde(default, deserialize_with = "might_be_single")]
     file_associations: Vec<FileAssociation>,
 
+    #[serde(default)]
+    extra_metadata: Option<serde_json::Value>,
+
     // "linux-specific" section
     #[serde(default, deserialize_with = "might_be_single")]
     category: Vec<String>,
@@ -208,6 +211,13 @@ impl<'a> EBuilderConfig {
         } else {
             self.base.extra_resources.as_slice()
         }
+    }
+
+    pub fn extra_metadata(&'a self, platform: Platform) -> Option<&'a serde_json::Value> {
+        let platform_extra = &self.current_platform(platform).extra_metadata;
+        platform_extra
+            .as_ref()
+            .or(self.base.extra_metadata.as_ref())
     }
 
     pub fn desktop_properties(&'a self, platform: Platform) -> Option<Vec<(String, String)>> {

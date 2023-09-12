@@ -1,7 +1,9 @@
-use serde::Deserialize;
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Deserializer};
 use smart_default::SmartDefault;
-use std::borrow::Borrow;
 use std::collections::HashMap;
+
+use crate::environment::Platform;
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "camelCase")]
@@ -9,12 +11,12 @@ pub struct FileSet {
     from: Option<String>,
     #[serde(default)]
     to: Option<String>,
-    #[serde(default)]
-    pub(crate) filter: MightBeSingle<String>,
+    #[serde(default, deserialize_with = "might_be_single")]
+    pub(crate) filter: Vec<String>,
 }
 
 impl<'a> FileSet {
-    pub fn from(&'a self) -> Option<&'a str> {
+    pub fn from(&self) -> Option<&str> {
         self.from
             .as_ref()
             .map(|f| f.strip_prefix("./"))
@@ -22,7 +24,7 @@ impl<'a> FileSet {
             .or_else(|| self.from.as_deref())
     }
 
-    pub fn to(&'a self) -> Option<&'a str> {
+    pub fn to(&self) -> Option<&str> {
         self.to
             .as_ref()
             .map(|to| to.strip_prefix("./"))
@@ -30,8 +32,8 @@ impl<'a> FileSet {
             .or_else(|| self.to.as_deref())
     }
 
-    pub fn filters(&'a self) -> Vec<&'a str> {
-        self.filter.as_vec_str()
+    pub fn filters(&self) -> &[String] {
+        &self.filter
     }
 }
 
@@ -58,14 +60,24 @@ pub struct ProtocolAssociation {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FileAssociation {
-    ext: MightBeSingle<String>,
+    #[serde(deserialize_with = "might_be_single")]
+    ext: Vec<String>,
     pub mime_type: Option<String>,
 }
 
 impl FileAssociation {
-    pub fn exts(&self) -> Vec<&str> {
-        self.ext.as_vec_str()
+    pub fn exts(&self) -> &[String] {
+        &self.ext
     }
+}
+
+fn might_be_single<'de, T, D>(deserializer: D) -> Result<Vec<T>, D::Error>
+where
+    T: DeserializeOwned,
+    D: Deserializer<'de>,
+{
+    let v = MightBeSingle::deserialize(deserializer)?;
+    Ok(v.into())
 }
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq, SmartDefault)]
@@ -77,28 +89,14 @@ pub(crate) enum MightBeSingle<T> {
     None,
 }
 
-impl<T> MightBeSingle<T> {
-    fn is_empty(&self) -> bool {
-        match self {
-            MightBeSingle::None => true,
-            MightBeSingle::One(_) => false,
-            MightBeSingle::Multiple(multiple) => multiple.is_empty(),
-        }
-    }
+impl<T> From<MightBeSingle<T>> for Vec<T> {
+    fn from(x: MightBeSingle<T>) -> Vec<T> {
+        use MightBeSingle::*;
 
-    fn or<'a>(&'a self, other: &'a MightBeSingle<T>) -> &'a MightBeSingle<T> {
-        if self.is_empty() {
-            other
-        } else {
-            self
-        }
-    }
-
-    fn as_vec<'a>(&'a self) -> Vec<&'a T> {
-        match self {
-            MightBeSingle::None => Vec::new(),
-            MightBeSingle::One(one) => vec![one],
-            MightBeSingle::Multiple(multiple) => multiple.iter().collect(),
+        match x {
+            Multiple(v) => v,
+            One(v) => vec![v],
+            None => vec![],
         }
     }
 }
@@ -106,16 +104,6 @@ impl<T> MightBeSingle<T> {
 impl<T> From<Vec<T>> for MightBeSingle<T> {
     fn from(value: Vec<T>) -> Self {
         Self::Multiple(value)
-    }
-}
-
-impl<'a, T: Borrow<str>> MightBeSingle<T> {
-    fn as_vec_str(&'a self) -> Vec<&'a str> {
-        match self {
-            MightBeSingle::None => Vec::new(),
-            MightBeSingle::One(one) => vec![one.borrow()],
-            MightBeSingle::Multiple(multiple) => multiple.iter().map(Borrow::borrow).collect(),
-        }
     }
 }
 
@@ -134,27 +122,27 @@ pub(crate) struct EBuilderBaseConfig {
     #[serde(flatten)]
     pub(crate) common: CommonOverridableProperties,
 
-    #[serde(default)]
-    files: MightBeSingle<CopyDef>,
-    #[serde(default)]
-    asar_unpack: MightBeSingle<String>,
-    #[serde(default)]
-    extra_files: MightBeSingle<CopyDef>,
-    #[serde(default)]
-    extra_resources: MightBeSingle<CopyDef>,
+    #[serde(default, deserialize_with = "might_be_single")]
+    files: Vec<CopyDef>,
+    #[serde(default, deserialize_with = "might_be_single")]
+    asar_unpack: Vec<String>,
+    #[serde(default, deserialize_with = "might_be_single")]
+    extra_files: Vec<CopyDef>,
+    #[serde(default, deserialize_with = "might_be_single")]
+    extra_resources: Vec<CopyDef>,
 
     #[serde(default)]
     directories: EBDirectories,
     icon: Option<String>,
 
-    #[serde(default)]
-    protocols: MightBeSingle<ProtocolAssociation>,
-    #[serde(default)]
-    file_associations: MightBeSingle<FileAssociation>,
+    #[serde(default, deserialize_with = "might_be_single")]
+    protocols: Vec<ProtocolAssociation>,
+    #[serde(default, deserialize_with = "might_be_single")]
+    file_associations: Vec<FileAssociation>,
 
     // "linux-specific" section
-    #[serde(default)]
-    category: MightBeSingle<String>,
+    #[serde(default, deserialize_with = "might_be_single")]
+    category: Vec<String>,
     desktop: Option<HashMap<String, String>>,
 }
 
@@ -178,74 +166,89 @@ pub struct EBuilderConfig {
 }
 
 impl<'a> EBuilderConfig {
-    #[cfg(target_os = "linux")]
     #[inline]
-    /// this assumes no cross-compilation is ever done
-    pub(crate) fn current_platform(&'a self) -> &'a EBuilderBaseConfig {
-        &self.linux
+    pub(crate) fn current_platform(&'a self, platform: Platform) -> &'a EBuilderBaseConfig {
+        use Platform::*;
+        match platform {
+            Windows => &self.win,
+            Linux => &self.linux,
+            Darwin => &self.mac,
+        }
     }
 
-    pub fn files(&'a self) -> Vec<&'a CopyDef> {
-        self.current_platform()
-            .files
-            .or(&self.base.files)
-            .as_vec()
+    pub fn files(&'a self, platform: Platform) -> &'a [CopyDef] {
+        let platform_files = &self.current_platform(platform).files;
+        if !platform_files.is_empty() {
+            platform_files.as_slice()
+        } else {
+            self.base.files.as_slice()
+        }
     }
 
-    pub fn asar_unpack(&'a self) -> Vec<&'a str> {
-        self.current_platform()
-            .asar_unpack
-            .or(&self.base.asar_unpack)
-            .as_vec_str()
+    pub fn asar_unpack(&'a self, platform: Platform) -> &'a [String] {
+        let platform_asar = &self.current_platform(platform).asar_unpack;
+        if !platform_asar.is_empty() {
+            platform_asar.as_slice()
+        } else {
+            self.base.asar_unpack.as_slice()
+        }
     }
 
-    pub fn extra_files(&'a self) -> Vec<&'a CopyDef> {
-        self.current_platform()
-            .extra_files
-            .or(&self.base.extra_files)
-            .as_vec()
+    pub fn extra_files(&'a self, platform: Platform) -> &'a [CopyDef] {
+        let platform_extra = &self.current_platform(platform).extra_files;
+        if !platform_extra.is_empty() {
+            platform_extra.as_slice()
+        } else {
+            self.base.extra_files.as_slice()
+        }
     }
 
-    pub fn extra_resources(&'a self) -> Vec<&'a CopyDef> {
-        self.current_platform()
-            .extra_resources
-            .or(&self.base.extra_resources)
-            .as_vec()
+    pub fn extra_resources(&'a self, platform: Platform) -> &'a [CopyDef] {
+        let platform_extra = &self.current_platform(platform).extra_resources;
+        if !platform_extra.is_empty() {
+            platform_extra.as_slice()
+        } else {
+            self.base.extra_resources.as_slice()
+        }
     }
 
-    pub fn desktop_properties(&'a self) -> Option<Vec<(String, String)>> {
-        self.current_platform()
+    pub fn desktop_properties(&'a self, platform: Platform) -> Option<Vec<(String, String)>> {
+        self.current_platform(platform)
             .desktop
             .as_ref()
             .or_else(|| self.base.desktop.as_ref())
             .map(|m| m.clone().into_iter().collect())
     }
 
-    pub fn output_dir(&'a self) -> Option<&'a str> {
-        self.current_platform()
+    pub fn output_dir(&'a self, platform: Platform) -> Option<&'a str> {
+        self.current_platform(platform)
             .directories
             .output
             .as_deref()
             .or_else(|| self.base.directories.output.as_deref())
     }
 
-    pub fn protocol_associations(&'a self) -> Vec<&ProtocolAssociation> {
-        self.current_platform()
-            .protocols
-            .or(&self.base.protocols)
-            .as_vec()
+    pub fn protocol_associations(&'a self, platform: Platform) -> &[ProtocolAssociation] {
+        let platform_protocols = &self.current_platform(platform).protocols;
+        if !platform_protocols.is_empty() {
+            platform_protocols.as_slice()
+        } else {
+            self.base.protocols.as_slice()
+        }
     }
 
-    pub fn file_associations(&'a self) -> Vec<&FileAssociation> {
-        self.current_platform()
-            .file_associations
-            .or(&self.base.file_associations)
-            .as_vec()
+    pub fn file_associations(&'a self, platform: Platform) -> &'a [FileAssociation] {
+        let platform_assocs = &self.current_platform(platform).file_associations;
+        if !platform_assocs.is_empty() {
+            platform_assocs.as_slice()
+        } else {
+            self.base.file_associations.as_slice()
+        }
     }
 
     /// https://specifications.freedesktop.org/menu-spec/latest/apa.html#main-category-registry
-    pub fn desktop_categories(&'a self) -> Vec<&'a str> {
-        self.current_platform().category.as_vec_str()
+    pub fn desktop_categories(&'a self, platform: Platform) -> &[String] {
+        &self.current_platform(platform).category
     }
 
     pub(crate) fn icon_locations(&'a self) -> Vec<&'a str> {
@@ -270,9 +273,12 @@ impl<'a> EBuilderConfig {
 #[cfg(test)]
 mod tests {
     use super::EBuilderConfig;
-    use crate::config::{CopyDef, FileSet, MightBeSingle};
+    use crate::config::{CopyDef, FileSet};
+    use crate::environment::Platform;
     use anyhow::Result;
     use serde_json::json;
+
+    static LINUX: Platform = Platform::Linux;
 
     #[test]
     fn test_parse_empty() -> Result<()> {
@@ -280,9 +286,9 @@ mod tests {
             "files": null,
             "asarUnpack": [],
         }))?;
-        assert!(bc.files().is_empty());
-        assert!(bc.asar_unpack().is_empty());
-        assert!(bc.extra_resources().is_empty());
+        assert!(bc.files(LINUX).is_empty());
+        assert!(bc.asar_unpack(LINUX).is_empty());
+        assert!(bc.extra_resources(LINUX).is_empty());
         Ok(())
     }
 
@@ -295,14 +301,14 @@ mod tests {
                 "from": "dir",
             },
         }))?;
-        assert_eq!(bc.files(), vec![&CopyDef::Simple("file.aoeu".to_owned())]);
-        assert_eq!(bc.asar_unpack(), vec!["*.aoeu"]);
+        assert_eq!(bc.files(LINUX), [CopyDef::Simple("file.aoeu".to_owned())]);
+        assert_eq!(bc.asar_unpack(LINUX), ["*.aoeu"]);
         assert_eq!(
-            bc.extra_resources(),
-            vec![&CopyDef::Set(FileSet {
+            bc.extra_resources(LINUX),
+            [CopyDef::Set(FileSet {
                 from: Some("dir".to_owned()),
                 to: None,
-                filter: MightBeSingle::None,
+                filter: vec![],
             })]
         );
         Ok(())
@@ -325,35 +331,32 @@ mod tests {
             }],
         }))?;
         assert_eq!(
-            bc.files(),
-            vec![
-                &CopyDef::Simple("file.aoeu".to_owned()),
-                &CopyDef::Simple("bestand.aoeu".to_owned()),
+            bc.files(LINUX),
+            [
+                CopyDef::Simple("file.aoeu".to_owned()),
+                CopyDef::Simple("bestand.aoeu".to_owned()),
             ],
         );
-        assert_eq!(bc.asar_unpack(), vec!["*.aoeu", "dir/"]);
+        assert_eq!(bc.asar_unpack(LINUX), ["*.aoeu", "dir/"]);
         assert_eq!(
-            bc.extra_resources(),
-            vec![
-                &CopyDef::Set(FileSet {
+            bc.extra_resources(LINUX),
+            [
+                CopyDef::Set(FileSet {
                     from: Some("source".to_owned()),
                     to: None,
-                    filter: MightBeSingle::One("*".to_owned()),
+                    filter: vec!["*".to_owned()],
                 }),
-                &CopyDef::Simple("dir1".to_owned()),
-                &CopyDef::Simple("dir2".to_owned()),
-                &CopyDef::Set(FileSet {
+                CopyDef::Simple("dir1".to_owned()),
+                CopyDef::Simple("dir2".to_owned()),
+                CopyDef::Set(FileSet {
                     from: Some("hx".to_owned()),
                     to: Some("mz".to_owned()),
-                    filter: MightBeSingle::Multiple(vec![
-                        "**/*".to_owned(),
-                        "!foo/*.js".to_owned(),
-                    ]),
+                    filter: vec!["**/*".to_owned(), "!foo/*.js".to_owned(),],
                 }),
-                &CopyDef::Set(FileSet {
+                CopyDef::Set(FileSet {
                     from: None,
                     to: None,
-                    filter: MightBeSingle::Multiple(vec!["LICENSE.txt".to_owned()]),
+                    filter: vec!["LICENSE.txt".to_owned()],
                 }),
             ],
         );

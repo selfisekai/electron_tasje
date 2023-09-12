@@ -90,10 +90,18 @@ impl PackingProcessBuilder {
     }
 
     pub fn build<'a>(self) -> PackingProcess {
+        let environment = self
+            .target_environment
+            .unwrap_or(HOST_ENVIRONMENT);
         let base_output_dir = self.app.root.clone().join(
             self.base_output_dir
                 .clone()
-                .or_else(|| self.app.config().output_dir().map(|o| o.into()))
+                .or_else(|| {
+                    self.app
+                        .config()
+                        .output_dir(environment.platform)
+                        .map(|o| o.into())
+                })
                 .unwrap_or_else(|| "tasje_out".into()),
         );
         let icons_output_dir = base_output_dir.join(
@@ -109,9 +117,7 @@ impl PackingProcessBuilder {
             base_output_dir,
             icons_output_dir,
             resources_output_dir,
-            environment: self
-                .target_environment
-                .unwrap_or(HOST_ENVIRONMENT),
+            environment,
             additional_files: self.additional_files,
             additional_asar_unpack: self.additional_asar_unpack,
             additional_extra_resources: self.additional_extra_resources,
@@ -136,9 +142,16 @@ impl PackingProcess {
         fs::create_dir_all(&self.icons_output_dir)?;
 
         self.pack_asar()?;
-        self.pack_extra(self.app.config().extra_files(), &self.base_output_dir)?;
         self.pack_extra(
-            self.app.config().extra_resources(),
+            self.app
+                .config()
+                .extra_files(self.environment.platform),
+            &self.base_output_dir,
+        )?;
+        self.pack_extra(
+            self.app
+                .config()
+                .extra_resources(self.environment.platform),
             &self.resources_output_dir,
         )?;
 
@@ -155,19 +168,15 @@ impl PackingProcess {
             .resources_output_dir
             .join("app.asar.unpacked");
         let mut files: Vec<&CopyDef> = vec![&NODE_MODULES_GLOB];
-        files.extend(self.app.config().files());
+        files.extend(self.app.config().files(self.environment.platform));
         files.extend(self.additional_files.as_slice());
         files.extend(FORCED_FILTERS.as_slice());
         let unpack_list = Some(
             self.app
                 .config()
-                .asar_unpack()
+                .asar_unpack(self.environment.platform)
                 .into_iter()
-                .chain(
-                    self.additional_asar_unpack
-                        .iter()
-                        .map(String::as_str),
-                )
+                .chain(self.additional_asar_unpack.iter())
                 .collect::<Vec<_>>(),
         )
         .filter(|l| !l.is_empty());
@@ -186,7 +195,7 @@ impl PackingProcess {
         Ok(())
     }
 
-    fn pack_extra<P>(&self, copydefs: Vec<&CopyDef>, target: P) -> Result<()>
+    fn pack_extra<P>(&self, copydefs: &[CopyDef], target: P) -> Result<()>
     where
         P: AsRef<Path>,
     {
@@ -214,8 +223,8 @@ impl PackingProcess {
         if self.environment.platform == Platform::Linux {
             fs::write(
                 self.base_output_dir
-                    .join(self.app.desktop_name()?),
-                DesktopGenerator::new().generate(&self.app)?,
+                    .join(self.app.desktop_name(self.environment.platform)?),
+                DesktopGenerator::new().generate(&self.app, self.environment.platform)?,
             )?;
         }
 

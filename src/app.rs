@@ -1,6 +1,3 @@
-use crate::config::EBuilderConfig;
-use crate::package::Package;
-use crate::utils::filesafe_package_name;
 use anyhow::Result;
 use serde_json::Value;
 use std::ffi::OsStr;
@@ -8,6 +5,11 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use thiserror::Error;
+
+use crate::config::EBuilderConfig;
+use crate::environment::Platform;
+use crate::package::Package;
+use crate::utils::filesafe_package_name;
 
 #[derive(Error, Debug)]
 pub enum AppParseError {
@@ -135,10 +137,10 @@ impl App {
 }
 
 macro_rules! common_property {
-    ($self:ident, $prop:ident) => {
+    ($self:ident, $platform:ident, $prop:ident) => {
         $self
             .config
-            .current_platform()
+            .current_platform($platform)
             .common
             .$prop
             .as_ref()
@@ -148,24 +150,25 @@ macro_rules! common_property {
 }
 
 impl<'a> App {
-    pub fn description(&'a self) -> Option<&'a str> {
-        common_property!(self, description).map(String::as_str)
+    pub fn description(&'a self, platform: Platform) -> Option<&'a str> {
+        common_property!(self, platform, description).map(String::as_str)
     }
 
-    pub fn executable_name(&'a self) -> Result<String> {
+    pub fn executable_name(&'a self, platform: Platform) -> Result<String> {
         filesafe_package_name(
-            common_property!(self, executable_name).unwrap_or(&self.package.manifest.name),
+            common_property!(self, platform, executable_name)
+                .unwrap_or(&self.package.manifest.name),
         )
     }
 
-    pub fn product_name(&'a self) -> &'a str {
-        common_property!(self, product_name)
+    pub fn product_name(&'a self, platform: Platform) -> &'a str {
+        common_property!(self, platform, product_name)
             .unwrap_or(&self.package.manifest.name)
             .as_str()
     }
 
-    pub fn desktop_name(&'a self) -> Result<String> {
-        common_property!(self, desktop_name)
+    pub fn desktop_name(&'a self, platform: Platform) -> Result<String> {
+        common_property!(self, platform, desktop_name)
             .map(String::clone)
             .map(Result::Ok)
             .unwrap_or_else(|| {
@@ -188,7 +191,10 @@ impl<'a> App {
 #[cfg(test)]
 mod tests {
     use super::App;
+    use crate::environment::Platform;
     use anyhow::Result;
+
+    static LINUX: Platform = Platform::Linux;
 
     #[test]
     fn test_parse() -> Result<()> {
@@ -196,10 +202,10 @@ mod tests {
 
         println!("{:#?}", app);
 
-        assert_eq!(app.description(), Some("Packs Electron apps"));
-        assert_eq!(app.executable_name()?, "tasje");
-        assert_eq!(app.product_name(), "Tasje");
-        assert_eq!(app.desktop_name()?, "electron_tasje.desktop");
+        assert_eq!(app.description(LINUX), Some("Packs Electron apps"));
+        assert_eq!(app.executable_name(LINUX)?, "tasje");
+        assert_eq!(app.product_name(LINUX), "Tasje");
+        assert_eq!(app.desktop_name(LINUX)?, "electron_tasje.desktop");
 
         Ok(())
     }

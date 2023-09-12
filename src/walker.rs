@@ -23,7 +23,7 @@ impl<'a> Walker<'a> {
         root: PathBuf,
         environment: Environment,
         to_copy: Vec<&'a CopyDef>,
-        unpack_list: Option<Vec<&str>>,
+        unpack_list: Option<Vec<&String>>,
     ) -> Result<Self> {
         let mut globs = Vec::new();
         let mut sets = Vec::new();
@@ -138,15 +138,25 @@ impl<'a> Iterator for Walker<'a> {
 mod tests {
     use super::Walker;
     use crate::app::App;
-    use crate::environment::HOST_ENVIRONMENT;
+    use crate::environment::{Platform, HOST_ENVIRONMENT};
     use anyhow::Result;
     use std::path::PathBuf;
+
+    static LINUX: Platform = Platform::Linux;
 
     #[test]
     fn test_walking() -> Result<()> {
         let root = PathBuf::from("test_assets");
         let app = App::new_from_package_file(root.join("package.json"))?;
-        let walker = Walker::new(root, HOST_ENVIRONMENT, app.config().files(), None)?;
+        let walker = Walker::new(
+            root,
+            HOST_ENVIRONMENT,
+            app.config()
+                .files(LINUX)
+                .iter()
+                .collect::<Vec<_>>(),
+            None,
+        )?;
 
         let full_list: Vec<_> = walker.collect();
 

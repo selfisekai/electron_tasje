@@ -1,6 +1,9 @@
+use anyhow::{anyhow, Result};
+use std::fs;
+use std::path::Path;
+
 use crate::app::App;
 use crate::environment::Platform;
-use anyhow::Result;
 
 pub struct DesktopGenerator {
     entries: Vec<(String, String)>,
@@ -70,6 +73,37 @@ impl DesktopGenerator {
         }
 
         Ok(contents)
+    }
+
+    pub fn write_to_output_dir<P>(
+        self,
+        app: &App,
+        platform: Platform,
+        output: Option<P>,
+    ) -> Result<()>
+    where
+        P: AsRef<Path>,
+    {
+        let contents = self.generate(app, platform)?;
+        let mut target = app.output_dir(platform);
+        if let Some(out) = output {
+            target = target.join(out.as_ref());
+            if target.is_dir() {
+                target = target.join(app.desktop_name(platform)?);
+            }
+        } else {
+            target = target.join(app.desktop_name(platform)?);
+        }
+
+        // make sure dir exists
+        fs::create_dir_all(
+            target
+                .parent()
+                .ok_or_else(|| anyhow!("no desktop entry target parent"))?,
+        )?;
+        fs::write(target, contents)?;
+
+        Ok(())
     }
 }
 

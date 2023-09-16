@@ -96,13 +96,7 @@ impl PackingProcessBuilder {
         let base_output_dir = self.app.root.clone().join(
             self.base_output_dir
                 .clone()
-                .or_else(|| {
-                    self.app
-                        .config()
-                        .output_dir(environment.platform)
-                        .map(|o| o.into())
-                })
-                .unwrap_or_else(|| "tasje_out".into()),
+                .unwrap_or_else(|| self.app.output_dir(environment.platform)),
         );
         let icons_output_dir = base_output_dir.join(
             self.icons_output_dir
@@ -234,10 +228,10 @@ impl PackingProcess {
 
     fn generate_desktop_file(&self) -> Result<()> {
         if self.environment.platform == Platform::Linux {
-            fs::write(
-                self.base_output_dir
-                    .join(self.app.desktop_name(self.environment.platform)?),
-                DesktopGenerator::new().generate(&self.app, self.environment.platform)?,
+            DesktopGenerator::new().write_to_output_dir(
+                &self.app,
+                self.environment.platform,
+                Some(&self.base_output_dir),
             )?;
         }
 

@@ -201,6 +201,14 @@ impl<'a> App {
         }
         Ok(serde_json::to_vec(package)?)
     }
+
+    pub fn output_dir(&'a self, platform: Platform) -> PathBuf {
+        self.root.join(
+            self.config
+                .output_dir(platform)
+                .unwrap_or("tasje_out"),
+        )
+    }
 }
 
 #[cfg(test)]

@@ -4,23 +4,39 @@
 //! in the inevitable case this is not covering every use case,
 //! extend it, and feel free to send a pull request :)
 
+use anyhow::{bail, Result};
+
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Architecture {
     X86_64,
     X86,
     Aarch64,
-    Arm,
+    ArmV7,
 }
 
 impl Architecture {
+    pub fn from_tasje_name<N>(name: N) -> Result<Architecture>
+    where
+        N: AsRef<str>,
+    {
+        use Architecture::*;
+        match name.as_ref() {
+            "x86_64" => Ok(X86_64),
+            "x86" => Ok(X86),
+            "aarch64" => Ok(Aarch64),
+            "armv7" => Ok(ArmV7),
+            n => bail!("unknown architecture name: {n:?}"),
+        }
+    }
+
     pub fn to_node(&self) -> &'static str {
         use Architecture::*;
         match self {
             X86_64 => "x64",
             X86 => "ia32",
             Aarch64 => "arm64",
-            Arm => "arm",
+            ArmV7 => "arm",
         }
     }
 }
@@ -35,7 +51,7 @@ pub static HOST_ARCHITECTURE: Architecture = Architecture::X86;
 pub static HOST_ARCHITECTURE: Architecture = Architecture::Aarch64;
 
 #[cfg(any(target_arch = "armv6", target_arch = "armv7"))]
-pub static HOST_ARCHITECTURE: Architecture = Architecture::Arm;
+pub static HOST_ARCHITECTURE: Architecture = Architecture::ArmV7;
 
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -46,6 +62,19 @@ pub enum Platform {
 }
 
 impl Platform {
+    pub fn from_tasje_name<N>(name: N) -> Result<Platform>
+    where
+        N: AsRef<str>,
+    {
+        use Platform::*;
+        match name.as_ref() {
+            "linux" => Ok(Linux),
+            "windows" => Ok(Windows),
+            "darwin" => Ok(Darwin),
+            n => bail!("unknown platform name: {n:?}"),
+        }
+    }
+
     pub fn to_node(&self) -> &'static str {
         use Platform::*;
         match self {

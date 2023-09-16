@@ -3,7 +3,9 @@ use clap::{Parser, Subcommand};
 use electron_tasje::app::App;
 use electron_tasje::config::CopyDef;
 use electron_tasje::desktop::DesktopGenerator;
-use electron_tasje::environment::HOST_PLATFORM;
+use electron_tasje::environment::{
+    Architecture, Environment, Platform, HOST_ARCHITECTURE, HOST_PLATFORM,
+};
 use electron_tasje::pack::PackingProcessBuilder;
 use std::env::current_dir;
 
@@ -47,12 +49,35 @@ struct Args {
     /// configuration file, if ebuilder configuration is outside package.json.
     /// can be YAML, TOML, JSON or JS
     config: Option<String>,
+
+    #[clap(long, value_parser)]
+    /// target cpu architecture (if cross-compiling, otherwise defaults to host)
+    target_architecture: Option<String>,
+
+    #[clap(long, value_parser)]
+    /// target platform/operating system (if cross-compiling, otherwise defaults to host)
+    target_platform: Option<String>,
 }
 
 fn main() -> Result<()> {
     let args = Args::parse();
 
     let Args { config, .. } = args;
+
+    let target_architecture = if let Some(arch) = args.target_architecture {
+        Architecture::from_tasje_name(&arch)?
+    } else {
+        HOST_ARCHITECTURE
+    };
+    let target_platform = if let Some(platform) = args.target_platform {
+        Platform::from_tasje_name(&platform)?
+    } else {
+        HOST_PLATFORM
+    };
+    let target_environment = Environment {
+        architecture: target_architecture,
+        platform: target_platform,
+    };
 
     let root = current_dir()?;
     let package_path = root.join("package.json");
@@ -69,7 +94,8 @@ fn main() -> Result<()> {
             additional_asar_unpack,
             additional_extra_resources,
         } => {
-            let mut builder = PackingProcessBuilder::new(app);
+            let mut builder =
+                PackingProcessBuilder::new(app).target_environment(target_environment);
             if let Some(out) = output {
                 builder = builder.base_output_dir(out);
             }
@@ -92,7 +118,7 @@ fn main() -> Result<()> {
         }
 
         GenerateDesktop { output } => {
-            DesktopGenerator::new().write_to_output_dir(&app, HOST_PLATFORM, output)?;
+            DesktopGenerator::new().write_to_output_dir(&app, target_platform, output)?;
         }
     }
 

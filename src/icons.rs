@@ -228,4 +228,22 @@ mod tests {
         }
         Ok(())
     }
+
+    #[test]
+    fn test_build_resources() -> Result<()> {
+        let icons_dir = Path::new(".test-workspace/icons_mac");
+        create_dir_all(icons_dir)?;
+        let app = App::new_from_package_file("test_assets/package-build_resources.json")?;
+        IconGenerator::new().generate(app.icon_locations(), icons_dir)?;
+        assert_eq!(
+            read_to_string(icons_dir.join("size-list"))?,
+            "128x128
+256x256
+512x512"
+        );
+        for name in ["128x128.png", "256x256.png", "512x512.png"] {
+            assert!(icons_dir.join(name).is_file());
+        }
+        Ok(())
+    }
 }

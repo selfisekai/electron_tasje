@@ -2,6 +2,7 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Deserializer};
 use smart_default::SmartDefault;
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 use crate::environment::Platform;
 
@@ -46,6 +47,7 @@ pub enum CopyDef {
 #[serde(rename_all = "camelCase")]
 pub struct EBDirectories {
     pub output: Option<String>,
+    pub build_resources: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -259,18 +261,25 @@ impl<'a> EBuilderConfig {
         &self.current_platform(platform).category
     }
 
-    pub(crate) fn icon_locations(&'a self) -> Vec<&'a str> {
+    fn build_resources(&'a self, platform: Platform) -> &'a str {
+        self.current_platform(platform)
+            .directories
+            .build_resources
+            .as_deref()
+            .or(self.base.directories.build_resources.as_deref())
+            .unwrap_or("build")
+    }
+
+    pub(crate) fn icon_locations(&'a self) -> Vec<PathBuf> {
         [
-            self.linux.icon.as_deref(),
-            self.mac
-                .icon
-                .as_deref()
-                .or(Some("build/icon.icns")),
-            self.win
-                .icon
-                .as_deref()
-                .or(Some("build/icon.ico")),
-            self.base.icon.as_deref(),
+            self.linux.icon.as_ref().map(PathBuf::from),
+            self.mac.icon.as_ref().map(PathBuf::from).or(Some(
+                Path::new(self.build_resources(Platform::Darwin)).join("icon.icns"),
+            )),
+            self.win.icon.as_ref().map(PathBuf::from).or(Some(
+                Path::new(self.build_resources(Platform::Windows)).join("icon.ico"),
+            )),
+            self.base.icon.as_ref().map(PathBuf::from),
         ]
         .into_iter()
         .flatten()

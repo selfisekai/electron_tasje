@@ -1,0 +1,11 @@
+{
+    "name": "electron_tasje",
+    "description": "Packs Electron apps",
+    "version": "2.1.3.7-jp2",
+    "build": {
+        "@comment": "the below declaration implies that's the default directory for win/mac icons, per https://www.electron.build/icons",
+        "directories": {
+            "buildResources": "icons_mac"
+        }
+    }
+}

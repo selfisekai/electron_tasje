@@ -100,7 +100,8 @@ impl App {
                 &Command::new(std::env::var("NODE").unwrap_or_else(|_| "node".to_string()))
                     .arg("-p")
                     .arg(format!(
-                        "JSON.stringify(require({}))",
+                        // if esm, get default export
+                        "let c=require({});if(c.default){{c=c.default}}JSON.stringify(c)",
                         serde_json::to_string(&config_file.as_ref().canonicalize()?)?
                     ))
                     // to allow using electron binaries

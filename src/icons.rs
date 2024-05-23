@@ -162,7 +162,10 @@ impl IconGenerator {
     fn optimize_png(&self, png_path: PathBuf) -> Result<()> {
         oxipng::optimize(
             &oxipng::InFile::Path(png_path.clone()),
-            &oxipng::OutFile::Path(None),
+            &oxipng::OutFile::Path {
+                path: None,
+                preserve_attrs: false,
+            },
             &oxipng::Options {
                 fix_errors: true,
                 ..Default::default()

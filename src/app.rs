@@ -76,6 +76,29 @@ impl App {
         })
     }
 
+    /// `json_resolver` is a small script that has to console.log json
+    fn run_node_for_config(json_resolver: String) -> Result<EBuilderConfig, AppParseError> {
+        Ok(serde_json::from_slice(
+            &Command::new(std::env::var("NODE").unwrap_or_else(|_| "node".to_string()))
+                .arg("-e")
+                .arg(json_resolver)
+                // to allow using electron binaries
+                .env("ELECTRON_RUN_AS_NODE", "1")
+                .env("IS_TASJE", "1")
+                .output()
+                .map(|out| {
+                    if out.status.code().is_some_and(|c| c == 0) {
+                        Ok(out)
+                    } else {
+                        Err(AppParseError::NodeProcessError {
+                            status_code: out.status.code(),
+                        })
+                    }
+                })??
+                .stdout,
+        )?)
+    }
+
     pub fn new_from_files<P1, P2>(package_file: P1, config_file: P2) -> Result<App, AppParseError>
     where
         P1: AsRef<Path>,
@@ -96,27 +119,14 @@ impl App {
             "toml" => toml::from_str(&fs::read_to_string(config_file.as_ref())?)?,
             "json5" => json5::from_str(&fs::read_to_string(config_file.as_ref())?)?,
             // runs node.js to import the file and serialize it to json, then parses the json output
-            "js" => serde_json::from_slice(
-                &Command::new(std::env::var("NODE").unwrap_or_else(|_| "node".to_string()))
-                    .arg("-p")
-                    .arg(format!(
-                        "JSON.stringify(require({}))",
-                        serde_json::to_string(&config_file.as_ref().canonicalize()?)?
-                    ))
-                    // to allow using electron binaries
-                    .env("ELECTRON_RUN_AS_NODE", "1")
-                    .output()
-                    .map(|out| {
-                        if out.status.code().is_some_and(|c| c == 0) {
-                            Ok(out)
-                        } else {
-                            Err(AppParseError::NodeProcessError {
-                                status_code: out.status.code(),
-                            })
-                        }
-                    })??
-                    .stdout,
-            )?,
+            "js" => App::run_node_for_config(format!(
+                "console.log(JSON.stringify(require({})))",
+                serde_json::to_string(&config_file.as_ref().canonicalize()?)?
+            ))?,
+            "mjs" => App::run_node_for_config(format!(
+                "import({}).then((ebc) => console.log(JSON.stringify(ebc)))",
+                serde_json::to_string(&config_file.as_ref().canonicalize()?)?
+            ))?,
             unknown => {
                 return Err(AppParseError::UnknownConfigFileExtension(
                     unknown.to_string(),

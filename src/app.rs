@@ -124,7 +124,7 @@ impl App {
                 serde_json::to_string(&config_file.as_ref().canonicalize()?)?
             ))?,
             "mjs" => App::run_node_for_config(format!(
-                "import({}).then((ebc) => console.log(JSON.stringify(ebc)))",
+                "import({}).then((ebc) => console.log(JSON.stringify(ebc.default)))",
                 serde_json::to_string(&config_file.as_ref().canonicalize()?)?
             ))?,
             unknown => {

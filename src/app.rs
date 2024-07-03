@@ -29,8 +29,8 @@ pub enum AppParseError {
     NoConfigFileExtension,
     #[error("unknown file extension in config path: {0:?}")]
     UnknownConfigFileExtension(String),
-    #[error("node process for executing config exited unsuccessfully")]
-    NodeProcessError { status_code: Option<i32> },
+    #[error("node process for executing config exited unsuccessfully with code {status_code:?}, stderr: {stderr:?}")]
+    NodeProcessError { status_code: Option<i32>, stderr: Option<String> },
 }
 
 #[derive(Debug, Clone)]
@@ -92,6 +92,7 @@ impl App {
                     } else {
                         Err(AppParseError::NodeProcessError {
                             status_code: out.status.code(),
+                            stderr: String::from_utf8(out.stderr).ok(),
                         })
                     }
                 })??

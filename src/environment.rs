@@ -44,13 +44,13 @@ impl Architecture {
 #[cfg(target_arch = "x86_64")]
 pub static HOST_ARCHITECTURE: Architecture = Architecture::X86_64;
 
-#[cfg(any(target_arch = "i586", target_arch = "i686"))]
+#[cfg(target_arch = "x86")]
 pub static HOST_ARCHITECTURE: Architecture = Architecture::X86;
 
 #[cfg(target_arch = "aarch64")]
 pub static HOST_ARCHITECTURE: Architecture = Architecture::Aarch64;
 
-#[cfg(any(target_arch = "armv6", target_arch = "armv7"))]
+#[cfg(target_arch = "arm")]
 pub static HOST_ARCHITECTURE: Architecture = Architecture::ArmV7;
 
 #[non_exhaustive]
@@ -91,7 +91,7 @@ pub static HOST_PLATFORM: Platform = Platform::Linux;
 #[cfg(target_os = "windows")]
 pub static HOST_PLATFORM: Platform = Platform::Windows;
 
-#[cfg(target_os = "darwin")]
+#[cfg(target_os = "macos")]
 pub static HOST_PLATFORM: Platform = Platform::Darwin;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -1,6 +1,6 @@
 steps:
   test:
-    image: alpine:3.18
+    image: alpine:3.20
     commands:
       - apk add --no-cache cargo build-base
       - cargo build

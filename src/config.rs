@@ -238,7 +238,7 @@ impl<'a> EBuilderConfig {
             .or(self.base.directories.output.as_deref())
     }
 
-    pub fn protocol_associations(&'a self, platform: Platform) -> &[ProtocolAssociation] {
+    pub fn protocol_associations(&'a self, platform: Platform) -> &'a [ProtocolAssociation] {
         let platform_protocols = &self.current_platform(platform).protocols;
         if !platform_protocols.is_empty() {
             platform_protocols.as_slice()
@@ -257,7 +257,7 @@ impl<'a> EBuilderConfig {
     }
 
     /// https://specifications.freedesktop.org/menu-spec/latest/apa.html#main-category-registry
-    pub fn desktop_categories(&'a self, platform: Platform) -> &[String] {
+    pub fn desktop_categories(&'a self, platform: Platform) -> &'a [String] {
         &self.current_platform(platform).category
     }
 

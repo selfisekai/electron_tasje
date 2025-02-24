@@ -6,14 +6,13 @@ use crate::icons::IconGenerator;
 use crate::walker::Walker;
 use anyhow::Result;
 use asar::AsarWriter;
+use chaste::types::ModulePathSegment;
 use once_cell::sync::Lazy;
+use std::collections::{BTreeSet, HashSet};
 use std::fs::{self, read, File};
 use std::path::{Path, PathBuf};
 
 static ROOT: Lazy<PathBuf> = Lazy::new(|| PathBuf::from("/"));
-
-static NODE_MODULES_GLOB: Lazy<CopyDef> =
-    Lazy::new(|| CopyDef::Simple("node_modules/**/*".to_string()));
 
 static FORCED_FILTERS: Lazy<Vec<CopyDef>> = Lazy::new(|| {
     [
@@ -155,13 +154,89 @@ impl PackingProcess {
         Ok(())
     }
 
+    /// this reads the lockfile (and package.json, for some packages) to tell apart
+    /// dev and production dependencies, and return paths to be packed or not.
+    ///
+    /// let's say, hypothetically, production dependencies are stored in the paths
+    /// `["node_modules/hoistable", "node_modules/packable", "node_modules/packable/node_modules/unhoistable",
+    ///  "node_modules/unpackable/node_modules/unhoistable"]`,
+    /// and dev dependencies are stored in `["node_modules/hoistable/node_modules/not_needed", "node_modules/unpackable"]`.
+    /// in this case, while `"node_modules/unpackable/node_modules/unhoistable"` would come from an included package,
+    /// it's also inside `"node_modules/unpackable"`, which is on the excluded list, therefore it should not be included.
+    /// on the other hand, while `"node_modules/hoistable"` is to be included, `"node_modules/hoistable/node_modules/not_needed"`
+    /// is not, and therefore lands on the explicitly excluded list.
+    fn find_node_modules(&self) -> Result<Vec<CopyDef>> {
+        let chastefile = chaste::from_root_path(&self.app.root)?;
+        let root_pid = chastefile.root_package_id();
+        let included_pids: HashSet<chaste::PackageID> = HashSet::from_iter(
+            chastefile
+                .recursive_prod_package_dependencies(root_pid)
+                .into_iter()
+                .map(|dep| dep.on),
+        );
+        let mut excluded_paths: BTreeSet<Vec<ModulePathSegment>> = BTreeSet::new();
+        for pid in chastefile
+            .recursive_package_dependencies(root_pid)
+            .into_iter()
+            .filter(|dep| !included_pids.contains(&dep.on))
+            .map(|dep| dep.on)
+        {
+            for installation in chastefile.package_installations(pid) {
+                excluded_paths.insert(installation.path().iter().collect());
+            }
+        }
+        let mut included_paths: BTreeSet<Vec<ModulePathSegment>> = BTreeSet::new();
+        let mut explicitly_excluded_paths: BTreeSet<Vec<ModulePathSegment>> = BTreeSet::new();
+        for pid in &included_pids {
+            'installation: for installation in chastefile.package_installations(*pid) {
+                let path: Vec<ModulePathSegment> = installation.path().iter().collect();
+                for idx in path.len()..=1 {
+                    if excluded_paths.contains(&path[..idx]) {
+                        debug_assert_ne!(idx, path.len());
+                        continue 'installation;
+                    }
+                }
+                for exc in excluded_paths.range(path.clone()..) {
+                    if exc.len() >= path.len() && path.starts_with(exc) {
+                        debug_assert_ne!(exc, &path);
+                        explicitly_excluded_paths.insert(exc.clone());
+                    } else {
+                        break;
+                    }
+                }
+                included_paths.insert(path);
+            }
+        }
+        Ok(included_paths
+            .into_iter()
+            .map(|p| {
+                CopyDef::Simple(
+                    p.iter()
+                        .map(|s| s.as_ref())
+                        .collect::<Vec<&str>>()
+                        .join("/"),
+                )
+            })
+            .chain(explicitly_excluded_paths.into_iter().map(|p| {
+                CopyDef::Simple(
+                    "!".to_string()
+                        + &p.iter()
+                            .map(|s| s.as_ref())
+                            .collect::<Vec<&str>>()
+                            .join("/"),
+                )
+            }))
+            .collect())
+    }
+
     fn pack_asar(&self) -> Result<()> {
         let mut asar = AsarWriter::new();
         let asar_file = File::create(self.resources_output_dir.join("app.asar"))?;
         let unpack_dir = self
             .resources_output_dir
             .join("app.asar.unpacked");
-        let mut files: Vec<&CopyDef> = vec![&NODE_MODULES_GLOB];
+        let modules = self.find_node_modules()?;
+        let mut files: Vec<&CopyDef> = modules.iter().collect();
         files.extend(self.app.config().files(self.environment.platform));
         files.extend(self.additional_files.as_slice());
         files.extend(FORCED_FILTERS.as_slice());

@@ -21,6 +21,11 @@ backtrace = ["anyhow/backtrace"]
 [dependencies]
 anyhow = "1.0.65"
 asar = "0.3.0"
+chaste = { git = "https://codeberg.org/selfisekai/chaste.git", rev = "bf6eebc4f752078974ac9623900a6d12f537fbe2", default-features = false, features = [
+    "npm",
+    "pnpm",
+    "yarn-berry",
+] }
 clap = { version = "4.3.21", features = ["derive"], optional = true }
 globreeks = "0.1.1"
 icns = "0.3.1"

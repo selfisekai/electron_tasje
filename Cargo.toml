@@ -21,7 +21,7 @@ backtrace = ["anyhow/backtrace"]
 [dependencies]
 anyhow = "1.0.65"
 asar = "0.3.0"
-chaste = { git = "https://codeberg.org/selfisekai/chaste.git", rev = "bf6eebc4f752078974ac9623900a6d12f537fbe2", default-features = false, features = [
+chaste = { git = "https://codeberg.org/selfisekai/chaste.git", rev = "c507d47b40699c228823d501fa1c5ca348473b9b", default-features = false, features = [
     "npm",
     "pnpm",
     "yarn-berry",
@@ -41,3 +41,6 @@ smart-default = "0.7.1"
 thiserror = "2.0"
 toml = "0.8.0"
 walkdir = "2.3.3"
+
+[patch.crates-io]
+yarn-lock-parser = { git = "https://github.com/selfisekai/yarn-lock-parser.git", rev = "91375bb51c861cd1460a039575702e531d0efb07" }

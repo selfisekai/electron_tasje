@@ -234,7 +234,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 [[package]]
 name = "chaste"
 version = "0.5.0"
-source = "git+https://codeberg.org/selfisekai/chaste.git?rev=bf6eebc4f752078974ac9623900a6d12f537fbe2#bf6eebc4f752078974ac9623900a6d12f537fbe2"
+source = "git+https://codeberg.org/selfisekai/chaste.git?rev=c507d47b40699c228823d501fa1c5ca348473b9b#c507d47b40699c228823d501fa1c5ca348473b9b"
 dependencies = [
  "chaste-npm",
  "chaste-pnpm",
@@ -246,7 +246,7 @@ dependencies = [
 [[package]]
 name = "chaste-npm"
 version = "0.5.0"
-source = "git+https://codeberg.org/selfisekai/chaste.git?rev=bf6eebc4f752078974ac9623900a6d12f537fbe2#bf6eebc4f752078974ac9623900a6d12f537fbe2"
+source = "git+https://codeberg.org/selfisekai/chaste.git?rev=c507d47b40699c228823d501fa1c5ca348473b9b#c507d47b40699c228823d501fa1c5ca348473b9b"
 dependencies = [
  "chaste-types",
  "serde",
@@ -257,7 +257,7 @@ dependencies = [
 [[package]]
 name = "chaste-pnpm"
 version = "0.5.0"
-source = "git+https://codeberg.org/selfisekai/chaste.git?rev=bf6eebc4f752078974ac9623900a6d12f537fbe2#bf6eebc4f752078974ac9623900a6d12f537fbe2"
+source = "git+https://codeberg.org/selfisekai/chaste.git?rev=c507d47b40699c228823d501fa1c5ca348473b9b#c507d47b40699c228823d501fa1c5ca348473b9b"
 dependencies = [
  "chaste-types",
  "nom 8.0.0",
@@ -270,7 +270,7 @@ dependencies = [
 [[package]]
 name = "chaste-types"
 version = "0.5.0"
-source = "git+https://codeberg.org/selfisekai/chaste.git?rev=bf6eebc4f752078974ac9623900a6d12f537fbe2#bf6eebc4f752078974ac9623900a6d12f537fbe2"
+source = "git+https://codeberg.org/selfisekai/chaste.git?rev=c507d47b40699c228823d501fa1c5ca348473b9b#c507d47b40699c228823d501fa1c5ca348473b9b"
 dependencies = [
  "nodejs-semver",
  "nom 8.0.0",
@@ -281,7 +281,7 @@ dependencies = [
 [[package]]
 name = "chaste-yarn"
 version = "0.5.0"
-source = "git+https://codeberg.org/selfisekai/chaste.git?rev=bf6eebc4f752078974ac9623900a6d12f537fbe2#bf6eebc4f752078974ac9623900a6d12f537fbe2"
+source = "git+https://codeberg.org/selfisekai/chaste.git?rev=c507d47b40699c228823d501fa1c5ca348473b9b#c507d47b40699c228823d501fa1c5ca348473b9b"
 dependencies = [
  "chaste-types",
  "nom 8.0.0",
@@ -1837,8 +1837,7 @@ checksum = "fdd20c5420375476fbd4394763288da7eb0cc0b8c11deed431a91562af7335d3"
 [[package]]
 name = "yarn-lock-parser"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46a94a329f3c1ca33731094a08af14c21180556c86292842c57c150a7bd87b59"
+source = "git+https://github.com/selfisekai/yarn-lock-parser.git?rev=91375bb51c861cd1460a039575702e531d0efb07#91375bb51c861cd1460a039575702e531d0efb07"
 dependencies = [
  "nom 8.0.0",
  "nom-language",
@@ -1847,8 +1846,8 @@ dependencies = [
 
 [[package]]
 name = "yarn-state"
-version = "0.1.1"
-source = "git+https://codeberg.org/selfisekai/chaste.git?rev=bf6eebc4f752078974ac9623900a6d12f537fbe2#bf6eebc4f752078974ac9623900a6d12f537fbe2"
+version = "0.1.2"
+source = "git+https://codeberg.org/selfisekai/chaste.git?rev=c507d47b40699c228823d501fa1c5ca348473b9b#c507d47b40699c228823d501fa1c5ca348473b9b"
 dependencies = [
  "nom 8.0.0",
  "thiserror 2.0.11",

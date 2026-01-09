@@ -120,11 +120,12 @@ impl App {
             "toml" => toml::from_str(&fs::read_to_string(config_file.as_ref())?)?,
             "json5" => json5::from_str(&fs::read_to_string(config_file.as_ref())?)?,
             // runs node.js to import the file and serialize it to json, then parses the json output
-            "js" => App::run_node_for_config(format!(
+            "js" | "cjs" | "cts" => App::run_node_for_config(format!(
                 "console.log(JSON.stringify(require({})))",
                 serde_json::to_string(&config_file.as_ref().canonicalize()?)?
             ))?,
-            "mjs" => App::run_node_for_config(format!(
+            // TypeScript is now supported by Node.js itself <https://nodejs.org/en/learn/typescript/run-natively>
+            "ts" | "mts" | "mjs" => App::run_node_for_config(format!(
                 "import({}).then((ebc) => console.log(JSON.stringify(ebc.default)))",
                 serde_json::to_string(&config_file.as_ref().canonicalize()?)?
             ))?,

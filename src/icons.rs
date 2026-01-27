@@ -46,9 +46,14 @@ impl IconGenerator {
         if location.is_file() {
             self.handle_file(location, icons_dir)?;
         } else if location.is_dir() {
-            // expected according to docs: multiple pngs
+            // expected according to docs:
+            // 1) macOS: Icon Composer asset
+            // 2) Linux: multiple pngs in a dir
             for entry in fs::read_dir(location)? {
                 let entry = entry?;
+                if !entry.file_type()?.is_file() {
+                    continue;
+                }
                 self.handle_file(entry.path().as_ref(), icons_dir)?;
             }
         }

@@ -1,6 +1,6 @@
 [package]
 name = "electron_tasje"
-version = "0.7.4"
+version = "0.7.5"
 edition = "2021"
 description = "Tiny replacement for electron-builder"
 authors = ["lauren n. liberda <lauren@selfisekai.rocks>"]
